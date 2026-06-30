@@ -14,7 +14,6 @@
 // Can not dynamically change in size
 // Open addressing is used with simple quadratic probing for collisions
 // Probe sequence may not visit all slots, therefore care has to be put into the table size
-// TODO: maybe make table size a power of 2 and use (i^2+i)/2 as the probe?
 typedef struct {
     u32 capacity;
     u32 n_elements;
