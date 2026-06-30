@@ -1,6 +1,6 @@
-// hash.h: hash functions and tables
-#ifndef HASH_H
-#define HASH_H
+// dsa.h: data structures and algorithms
+#ifndef DSA_H
+#define DSA_H
 #include <assert.h>
 #include <stdlib.h>
 #include "types.h"
@@ -45,15 +45,13 @@ void TableInsert(Table *table, u32 key);
 bool TableHas(Table *table, u32 key);
 
 // Counter with u32 keys
-// Implemented like Table
 typedef struct {
     u32 capacity;
-    u32 n_elements;
-    u32 *keys_and_counts; // (key,count),(key,count),...
+    u32 *counts;
 } Counter;
 
-// Allocate a counter, the capacity will be made in a specific way to ensure probe sequence works
-Counter CounterInit(u32 max_inserts);
+// Allocate a counter
+Counter CounterInit(u32 capacity);
 
 // Free counter memory
 void CounterFree(Counter *counter);
@@ -61,13 +59,10 @@ void CounterFree(Counter *counter);
 // Check if counter allocation worked
 bool CounterOkay(Counter *counter);
 
-// Clears a counter of all elements
+// Clears all counts
 void CounterClear(Counter *counter);
 
-// Increment key's count in counter by specified amount
-void CounterIncrement(Counter *counter, u32 key, u32 amount);
+// Returns pointer to counter's count at a specific index
+u32 *CounterAt(Counter *counter, u32 idx);
 
-// Returns count of a key in counter (0 if key doesn't exist)
-u32 CounterCount(Counter *counter, u32 key);
-
-#endif // HASH_H
+#endif // DSA_H
