@@ -6,7 +6,7 @@
 #define DEFAULT_POPULATION_SIZE (100)
 #define DEFAULT_MAX_GENERATIONS (100)
 #define DEFAULT_MUTATION_RATE (0.01)
-#define DEFAULT_MAX_MUTATION_STRENGTH (0.1)
+#define DEFAULT_MAX_MUTATION_STRENGTH (0.5)
 
 int main(int argc, char *argv[]) {
     SeedRNG();
@@ -24,7 +24,8 @@ int main(int argc, char *argv[]) {
         {"summary_out", required_argument, NULL, 0},
         {"population_size", required_argument, NULL, 0},
         {"max_generations", required_argument, NULL, 0},
-        {"mutation_rate", required_argument, NULL, 0}
+        {"mutation_rate", required_argument, NULL, 0},
+        {"max_mutation_strength", required_argument, NULL, 0}
     };
 
     int c;
@@ -50,6 +51,9 @@ int main(int argc, char *argv[]) {
             } break;
             case 5: {
                 mutation_rate = atof(optarg);
+            } break;
+            case 6: {
+                max_mutation_strength = atof(optarg);
             } break;
             default: {
                 puts("getopt returned something weird!");
