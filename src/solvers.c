@@ -111,27 +111,26 @@ bool GASolverInit(GASolver *solver) {
         return false;
     }
 
-    if (solver->log_path && solver->problem.n_cities <= MAX_CITIES_FOR_ENTROPY) {
-        u32 max_edges = solver->problem.n_cities*(solver->problem.n_cities - 1)/2;
-        solver->edge_counter = CounterInit(max_edges);
-        if (!CounterOkay(&solver->edge_counter)) {
-            puts("Couldn't allocate edge counter for entropy!");
-            TableFree(&solver->child_city_table);
-            free(solver->r);
-            free(solver->population_fitness);
-            TourBufferFree(solver->population);
-            return false;
-        }
-    }
+    // if (solver->log_path && solver->problem.n_cities <= MAX_CITIES_FOR_ENTROPY) {
+    //     u32 max_edges = solver->problem.n_cities*(solver->problem.n_cities - 1)/2;
+    //     solver->edge_counter = CounterInit(max_edges);
+    //     if (!CounterOkay(&solver->edge_counter)) {
+    //         puts("Couldn't allocate edge counter for entropy!");
+    //         TableFree(&solver->child_city_table);
+    //         free(solver->r);
+    //         free(solver->population_fitness);
+    //         TourBufferFree(solver->population);
+    //         return false;
+    //     }
+    // }
 
-    puts("Successfully initialized GA!");
     return true;
 }
 
 void GASolverFree(GASolver *solver) {
-    if (solver->log_path && solver->problem.n_cities <= MAX_CITIES_FOR_ENTROPY) {
-        CounterFree(&solver->edge_counter);
-    }
+    // if (solver->log_path && solver->problem.n_cities <= MAX_CITIES_FOR_ENTROPY) {
+    //     CounterFree(&solver->edge_counter);
+    // }
     TableFree(&solver->child_city_table);
     free(solver->r);
     free(solver->population_fitness);
@@ -140,8 +139,11 @@ void GASolverFree(GASolver *solver) {
 
 // === Helper functions for GA ===
 
+// TODO: I AM HERE: FINISH THIS!!!
+// TODO: better sizing of edge_counter using some calculation
 // Writes a fitness summary to a file
-static void GAWriteGenerationSummary(GASolver *solver, FILE *log_file) {
+static void GAWriteGenerationSummary(GASolver *solver, Counter *edge_counter, FILE *log_file) {
+    assert(solver->problem.n_cities <= MAX_CITIES_FOR_SUMMARY);
     // avg_fitness,stddev_fitness,worst_fitness,best_fitness,edge_entropy
     f64 worst_fitness = INFINITY;
     f64 best_fitness = -INFINITY;
@@ -164,13 +166,7 @@ static void GAWriteGenerationSummary(GASolver *solver, FILE *log_file) {
     }
     stddev_fitness = sqrt(stddev_fitness);
 
-    if (solver->problem.n_cities > MAX_CITIES_FOR_ENTROPY) {
-        fprintf(log_file, "%f,%f,%f,%f,%f\n", avg_fitness, stddev_fitness, worst_fitness, best_fitness, -1.0);
-        return;
-    }
-
-    // Calculate entropy if problem is small enough
-    CounterClear(&solver->edge_counter);
+    CounterClear(edge_counter);
     for (u32 i = 0; i < solver->population_size; i++) {
         for (u32 j = 0; j < solver->problem.n_cities; j++) {
             u32 from = TourAt(solver->population, i)[j];
@@ -181,21 +177,35 @@ static void GAWriteGenerationSummary(GASolver *solver, FILE *log_file) {
                 to = temp;
             }
             u32 edge = (from << 16) | to;
-            CounterIncrement(&solver->edge_counter, edge, 1);
+            *CounterAt(edge_counter, edge) += 1;
         }
     }
     f64 total_entropy = 0.0;
-    for (u32 i = 0; i < solver->edge_counter.capacity; i++) {
-        size idx = (size)2*i;
-        if (solver->edge_counter.keys_and_counts[idx] == INVALID_KEY) {
+    for (u32 i = 0; i < edge_counter->capacity; i++) {
+        if (*CounterAt(edge_counter, i) == 0) {
             continue;
         }
-        f64 p = (f64)solver->edge_counter.keys_and_counts[idx + 1]/(f64)solver->population_size;
+        f64 p = (f64)*CounterAt(edge_counter, i)/(f64)solver->population_size;
         total_entropy -= p*log(p);
     }
 
-    // TODO: edge entropy
-    fprintf(log_file, "%f,%f,%f,%f,%f\n", avg_fitness, stddev_fitness, worst_fitness, best_fitness, total_entropy);
+    fprintf(log_file, "%f,%f,%f,%f,%f", avg_fitness, stddev_fitness, worst_fitness, best_fitness, total_entropy);
+
+    // TODO: edge heat
+    for (u32 i = 0; i < edge_counter->capacity; i++) {
+        if (*CounterAt(edge_counter, i) == 0) {
+            continue;
+        }
+        u32 from = (i&0xFFFF0000) >> 16;
+        u32 to = i&0xFFFF;
+        if (from > to) {
+            u32 temp = from;
+            from = to;
+            to = temp;
+        }
+        fprintf(log_file, ",%u,%u,%f", from, to, (f64)*CounterAt(edge_counter, i)/(f64)solver->population_size);
+    }
+    fprintf(log_file, "\n");
 }
 // Calculate entire population fitness
 static void GASolverCalculatePopulationFitness(GASolver *solver);
@@ -210,11 +220,21 @@ static void GASolverCrossover(GASolver *solver, u32 p1_idx, u32 p2_idx, u32 c_id
 u32 *GASolverSolve(GASolver *solver) {
     FILE *log_file = NULL;
     if (solver->log_path) {
+        if (solver->problem.n_cities > MAX_CITIES_FOR_SUMMARY) {
+            puts("Exceeded max problem size for summary logging!");
+            return NULL;
+        }
         log_file = fopen(solver->log_path, "w");
     }
 
+    Counter edge_counter;
     if (log_file) {
-        fprintf(log_file, "avg_fitness,stddev_fitness,worst_fitness,best_fitness,edge_entropy\n");
+        u32 max_edge = (solver->problem.n_cities - 1) | ((solver->problem.n_cities - 1) << 16);
+        edge_counter = CounterInit(max_edge);
+        if (!CounterOkay(&edge_counter)) {
+            puts("Couldn't init edge counter for summary logging!");
+            return NULL;
+        }
     }
 
     // Initialize population randomly
@@ -229,6 +249,10 @@ u32 *GASolverSolve(GASolver *solver) {
         TourCopy(TourAt(solver->population, i + unseeded_population_size), seed_tour, solver->problem.n_cities);
     }
     GASolverCalculatePopulationFitness(solver);
+
+    if (log_file) {
+        GAWriteGenerationSummary(solver, &edge_counter, log_file);
+    }
 
     // Evolutionary loop
     for (u32 generation = 1; generation <= solver->max_generations; generation++) {
@@ -260,12 +284,13 @@ u32 *GASolverSolve(GASolver *solver) {
         GASolverCalculatePopulationFitness(solver);
 
         if (log_file) {
-            GAWriteGenerationSummary(solver, log_file);
+            GAWriteGenerationSummary(solver, &edge_counter, log_file);
         }
     }
     printf("\n");
 
     if (log_file) {
+        CounterFree(&edge_counter);
         fclose(log_file);
     }
 

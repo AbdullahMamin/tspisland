@@ -4,7 +4,7 @@
 #include "tsp.h"
 #include "util.h"
 
-#define MAX_CITIES_FOR_ENTROPY (0x2 << 16)
+#define MAX_CITIES_FOR_SUMMARY (0x2 << 16)
 
 // Just go from 1 -> 2 -> ... -> n
 u32 *SolveBasic(TSPInstance tsp_instance);
@@ -35,9 +35,7 @@ typedef struct {
     f64 *population_fitness;
     u32 *r;
     Table child_city_table;
-    Counter edge_counter;
 } GASolver;
-// u32 *SolveGA(TSPInstance tsp_instance, GAParameters parameters, const char *metrics_filepath);
 
 // Initializes data of GA solver
 bool GASolverInit(GASolver *solver);
