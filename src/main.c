@@ -82,9 +82,13 @@ int main(int argc, char *argv[]) {
     }
 
     u32 *tour = GASolverSolve(&ga_solver);
-    assert(tour);
+    if (!tour) {
+        puts("Couldn't get a tour from GA!");
+        GASolverFree(&ga_solver);
+        TSPInstanceDelete(problem);
+        return EXIT_FAILURE;
+    }
     if (tour_out) {
-        // TODO: name comment as command arguments
         TourWriteToFile(tour, problem.n_cities, "TSP tour", "Found by GA", tour_out);
     }
 
