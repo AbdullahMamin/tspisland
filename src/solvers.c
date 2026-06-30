@@ -239,7 +239,7 @@ u32 *GASolverSolve(GASolver *solver) {
     // Evolutionary loop
     for (u32 generation = 1; generation <= solver->max_generations; generation++) {
         printf("GA at generation %u/%u........\r", generation, solver->max_generations);
-        ShuffleArray(solver->r, solver->population_size);
+        ShuffleArrayU32(solver->r, solver->population_size, 0, solver->population_size - 1);
         for (u32 i = 0; i < solver->population_size - 1; i++) {
             // Crossover
             u32 p1_idx = solver->r[i];
@@ -303,11 +303,11 @@ static void GASolverMutate(GASolver *solver, u32 individual_idx) {
 
     if (CoinFlip(0.05)) {
         u32 mutation_start = RandomI32(0, solver->problem->n_cities - 1);
-        u32 mutation_length = RandomI32(0, solver->problem->n_cities - mutation_start);
+        u32 mutation_end = RandomI32(0, solver->problem->n_cities - 1);
         if (CoinFlip(0.5)) {
-            ShuffleArray(individual + mutation_start, mutation_length);
+            ShuffleArrayU32(individual, solver->problem->n_cities, mutation_start, mutation_end);
         } else {
-            ReverseArray(individual + mutation_start, mutation_length);
+            ReverseArrayU32(individual, solver->problem->n_cities, mutation_start, mutation_end);
         }
     } else {
         u32 i = RandomI32(0, solver->problem->n_cities - 1);

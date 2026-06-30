@@ -163,7 +163,7 @@ void TourRandomize(u32 *tour, u32 n_cities) {
     for (u32 i = 0; i < n_cities; i++) {
         tour[i] = i;
     }
-    ShuffleArray(tour, n_cities);
+    ShuffleArrayU32(tour, n_cities, 0, n_cities - 1);
 }
 
 bool TourIsValid(const u32 *tour, u32 n_cities, Table *table) {
