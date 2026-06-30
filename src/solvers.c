@@ -12,8 +12,8 @@ u32 *SolveBasic(const TSPInstance *tsp_instance) {
     return tour;
 }
 
-u32 *SolveGreedy(const TSPInstance *tsp_instance) {
-    assert(TSPInstanceOkay(tsp_instance));
+u32 *SolveGreedy(const TSPInstance *tsp_instance, u32 starting_city) {
+    assert(TSPInstanceOkay(tsp_instance) && starting_city < tsp_instance->n_cities);
     u32 *tour = TourInit(tsp_instance->n_cities);
     if (!tour) {
         return NULL;
@@ -21,8 +21,8 @@ u32 *SolveGreedy(const TSPInstance *tsp_instance) {
 
     Table visited_table = TableInit(tsp_instance->n_cities);
 
-    tour[0] = 0;
-    TableInsert(&visited_table, 0);
+    tour[0] = starting_city;
+    TableInsert(&visited_table, tour[0]);
     for (u32 i = 1; i < tsp_instance->n_cities; i++) {
         printf("Greedy at iteration %u...\n", i);
         u32 closest_neighbour = UINT32_MAX;
@@ -50,292 +50,283 @@ u32 *SolveGreedy(const TSPInstance *tsp_instance) {
     return tour;
 }
 
-bool GASolverInit(GASolver *solver) {
-    if (!TSPInstanceOkay(solver->problem)) {
-        puts("Didn't provide valid TSP instance!");
-        return false;
+// ==== GA SOLVER =====
+typedef struct {
+    GAParameters parameters;
+
+    // GA data
+    TourArray population;
+    f64 *population_fitness;
+    u32 *r; // for roulette selection
+    Table child_city_table; // for crossover
+} GASolver;
+
+static GASolver GASolverInit(GAParameters parameters);
+static void GASolverFree(GASolver *solver);
+static bool GASolverOkay(const GASolver *solver);
+static void GASolverEvolve(GASolver *solver, u32 n_generations);
+static u32 *GASolverBestIndividual(GASolver *solver);
+static void GASolverRandomizeIndividual(GASolver *solver, u32 index);
+static void GASolverCalculatePopulationFitness(GASolver *solver);
+static void GASolverMutateIndividual(GASolver *solver, u32 index, f64 strength);
+static void GASolverCrossoverIndividuals(GASolver *solver, u32 p1_index, u32 p2_index, u32 c_index);
+
+u32 *SolveGA(GAParameters parameters) {
+    GASolver solver = GASolverInit(parameters);
+    if (!GASolverOkay(&solver)) {
+        return NULL;
+    }
+    u32 *best_tour = TourInit(parameters.problem->n_cities);
+    if (!best_tour) {
+        puts("Couldn't allocate tour buffer!");
+        GASolverFree(&solver);
+        return NULL;
     }
 
-    if (solver->population_size <= 1) {
-        puts("Population must be at least 2!");
-        return false;
-    }
+    GASolverEvolve(&solver, parameters.max_generations);
+    TourCopy(best_tour, GASolverBestIndividual(&solver), parameters.problem->n_cities);
 
-    if (solver->mutation_rate < 0.0 || solver->mutation_rate > 1.0) {
-        puts("Mutation rate must be between 0.0 and 1.0!");
-        return false;
-    }
-
-    if (solver->n_seeds > 0 && !solver->seed_tours) {
-        puts("Seeds not provided!");
-        return false;
-    }
-
-    if (solver->n_seeds > 0 && (solver->seed_percentage < 0.0 || solver->seed_percentage > 1.0)) {
-        puts("Seed percentage needs to be between 0.0 and 1.0!");
-        return false;
-    }
-
-    // + 1 for children that are created (TODO: use a whole different buffer for children)
-    solver->population = TourArrayInit(solver->problem, solver->population_size + 1);
-    if (!TourArrayOkay(&solver->population)) {
-        puts("Couldn't allocate population!");
-        return false;
-    }
-
-    // + 1 for children that are created (TODO: use a whole different buffer for children)
-    solver->population_fitness = calloc(solver->population_size + 1, sizeof(*solver->population_fitness));
-    if (!solver->population_fitness) {
-        puts("Couldn't allocate population fitness buffer!");
-        TourArrayFree(&solver->population);
-        return false;
-    }
-
-    solver->r = calloc(solver->population_size, sizeof(*solver->r));
-    if (!solver->r) {
-        puts("Couldn't allocate population shuffle buffer!");
-        free(solver->population_fitness);
-        TourArrayFree(&solver->population);
-        return false;
-    }
-    for (u32 i = 0; i < solver->population_size; i++) {
-        solver->r[i] = i;
-    }
-
-    solver->child_city_table = TableInit(solver->problem->n_cities);
-    if (!TableOkay(&solver->child_city_table)) {
-        puts("Couldn't allocate child city table!");
-        free(solver->r);
-        free(solver->population_fitness);
-        TourArrayFree(&solver->population);
-        return false;
-    }
-
-    return true;
+    GASolverFree(&solver);
+    return best_tour;
 }
 
-void GASolverFree(GASolver *solver) {
+static GASolver GASolverInit(GAParameters parameters) {
+    GASolver solver = (GASolver){
+        .parameters = parameters,
+        .population_fitness = NULL,
+        .r = NULL
+    };
+
+    if (!TSPInstanceOkay(parameters.problem)) {
+        puts("Didn't provide valid TSP instance!");
+        return solver;
+    }
+
+    if (
+        (parameters.edge_entropy_out || parameters.edge_heat_out) &&
+        parameters.problem->n_cities > MAX_CITIES_FOR_EDGE_STATISTICS
+    ) {
+        printf(
+            "Can't log edge statistics when problem size is greater than %u!\n",
+            MAX_CITIES_FOR_EDGE_STATISTICS
+        );
+        return solver;
+    }
+
+    if (parameters.population_size <= 1) {
+        puts("Population must be at least 2!");
+        return solver;
+    }
+
+    if (parameters.mutation_rate < 0.0 || parameters.mutation_rate > 1.0) {
+        puts("Mutation rate must be between 0.0 and 1.0!");
+        return solver;
+    }
+
+    if (parameters.max_mutation_strength < 0.0 || parameters.max_mutation_strength > 1.0) {
+        puts("Max mutation strength must be between 0.0 and 1.0!");
+        return solver;
+    }
+
+    if (parameters.seeds && !TourArrayOkay(parameters.seeds)) {
+        puts("Seeds not provided!");
+        return solver;
+    }
+
+    if (parameters.seeds && (parameters.seed_percentage < 0.0 || parameters.seed_percentage > 1.0)) {
+        puts("Seed percentage needs to be between 0.0 and 1.0!");
+        return solver;
+    }
+
+    // + 1 for children that are created (TODO: use a whole different buffer for children)
+    solver.population = TourArrayInit(parameters.problem, parameters.population_size + 1);
+    if (!TourArrayOkay(&solver.population)) {
+        puts("Couldn't allocate population!");
+        return solver;
+    }
+
+    // + 1 for children that are created (TODO: use a whole different buffer for children)
+    solver.population_fitness = calloc(parameters.population_size + 1, sizeof(*solver.population_fitness));
+    if (!solver.population_fitness) {
+        puts("Couldn't allocate population fitness buffer!");
+        TourArrayFree(&solver.population);
+        return solver;
+    }
+
+    solver.r = calloc(parameters.population_size, sizeof(*solver.r));
+    if (!solver.r) {
+        puts("Couldn't allocate population shuffle buffer!");
+        free(solver.population_fitness);
+        solver.population_fitness = NULL;
+        TourArrayFree(&solver.population);
+        return solver;
+    }
+    for (u32 i = 0; i < parameters.population_size; i++) {
+        solver.r[i] = i;
+    }
+
+    solver.child_city_table = TableInit(parameters.problem->n_cities);
+    if (!TableOkay(&solver.child_city_table)) {
+        puts("Couldn't allocate child city table!");
+        free(solver.r);
+        solver.r = NULL;
+        free(solver.population_fitness);
+        solver.population_fitness = NULL;
+        TourArrayFree(&solver.population);
+        return solver;
+    }
+
+    // TODO: add seeds
+    for (u32 i = 0; i < parameters.population_size; i++) {
+        GASolverRandomizeIndividual(&solver, i);
+    }
+    GASolverCalculatePopulationFitness(&solver);
+
+    return solver;
+}
+
+static void GASolverFree(GASolver *solver) {
+    assert(GASolverOkay(solver));
     TableFree(&solver->child_city_table);
     free(solver->r);
+    solver->r = NULL;
     free(solver->population_fitness);
+    solver->population_fitness = NULL;
     TourArrayFree(&solver->population);
 }
 
-// === Helper functions for GA ===
-
-// Writes a fitness summary to a file
-static void GAWriteGenerationSummary(GASolver *solver, Counter *edge_counter, FILE *log_file) {
-    assert(solver->problem->n_cities <= MAX_CITIES_FOR_SUMMARY);
-    // avg_fitness,stddev_fitness,worst_fitness,best_fitness,edge_entropy
-    f64 worst_fitness = INFINITY;
-    f64 best_fitness = -INFINITY;
-    f64 avg_fitness = 0.0;
-    for (u32 i = 0; i < solver->population_size; i++) {
-        f64 fitness = solver->population_fitness[i];
-        if (fitness < worst_fitness) {
-            worst_fitness = fitness;
-        }
-        if (fitness > best_fitness) {
-            best_fitness = fitness;
-        }
-        avg_fitness += fitness/solver->population_size;
-    }
-
-    f64 stddev_fitness = 0.0;
-    for (u32 i = 0; i < solver->population_size; i++) {
-        f64 difference = solver->population_fitness[i] - avg_fitness;
-        stddev_fitness += difference*difference/solver->population_size;
-    }
-    stddev_fitness = sqrt(stddev_fitness);
-
-    CounterClear(edge_counter);
-    for (u32 i = 0; i < solver->population_size; i++) {
-        for (u32 j = 0; j < solver->problem->n_cities; j++) {
-            u32 from = TourArrayAt(&solver->population, i)[j];
-            u32 to = TourArrayAt(&solver->population, i)[(j + 1)%solver->problem->n_cities];
-            if (from > to) {
-                u32 temp = from;
-                from = to;
-                to = temp;
-            }
-            u32 edge = (from << 16) | to;
-            *CounterAt(edge_counter, edge) += 1;
-        }
-    }
-    f64 total_entropy = 0.0;
-    for (u32 i = 0; i < edge_counter->capacity; i++) {
-        if (*CounterAt(edge_counter, i) == 0) {
-            continue;
-        }
-        f64 p = (f64)*CounterAt(edge_counter, i)/(f64)solver->population_size;
-        total_entropy -= p*log(p);
-    }
-
-    fprintf(log_file, "%f,%f,%f,%f,%f", avg_fitness, stddev_fitness, worst_fitness, best_fitness, total_entropy);
-
-    // TODO: edge heat
-    for (u32 i = 0; i < edge_counter->capacity; i++) {
-        if (*CounterAt(edge_counter, i) == 0) {
-            continue;
-        }
-        u32 from = (i&0xFFFF0000) >> 16;
-        u32 to = i&0xFFFF;
-        if (from > to) {
-            u32 temp = from;
-            from = to;
-            to = temp;
-        }
-        fprintf(log_file, ",%u,%u,%f", from, to, (f64)*CounterAt(edge_counter, i)/(f64)solver->population_size);
-    }
-    fprintf(log_file, "\n");
+static bool GASolverOkay(const GASolver *solver) {
+    return solver->r != NULL;
 }
-// Calculate entire population fitness
-static void GASolverCalculatePopulationFitness(GASolver *solver);
-// Mutate an individual (TODO: study which to use)
-static void GASolverMutate(GASolver *solver, u32 individual_idx);
-// OX crossover (TODO: source)
-static void GASolverCrossover(GASolver *solver, u32 p1_idx, u32 p2_idx, u32 c_idx);
-// TODO: selection
 
-// ===============================
-
-u32 *GASolverSolve(GASolver *solver) {
-    FILE *log_file = NULL;
-    if (solver->log_path) {
-        if (solver->problem->n_cities > MAX_CITIES_FOR_SUMMARY) {
-            puts("Exceeded max problem size for summary logging!");
-            return NULL;
-        }
-        log_file = fopen(solver->log_path, "w");
-    }
-
-    Counter edge_counter;
-    if (log_file) {
-        u32 max_edge = (solver->problem->n_cities - 1) | ((solver->problem->n_cities - 1) << 16);
-        edge_counter = CounterInit(max_edge);
-        if (!CounterOkay(&edge_counter)) {
-            puts("Couldn't init edge counter for summary logging!");
-            return NULL;
-        }
-    }
-
-    // Initialize population randomly
-    u32 seeded_population_size = floor(solver->seed_percentage*solver->population_size);
-    u32 unseeded_population_size = solver->population_size - seeded_population_size;
-    for (u32 i = 0; i < unseeded_population_size; i++) {
-        TourRandomize(TourArrayAt(&solver->population, i), solver->problem->n_cities);
-    }
-    for (u32 i = 0; i < seeded_population_size; i++) {
-        u32 seed_idx = i%solver->n_seeds;
-        const u32 *seed_tour = &solver->seed_tours[solver->problem->n_cities*seed_idx];
-        TourCopy(TourArrayAt(&solver->population, i + unseeded_population_size), seed_tour, solver->problem->n_cities);
-    }
-    GASolverCalculatePopulationFitness(solver);
-
-    if (log_file) {
-        GAWriteGenerationSummary(solver, &edge_counter, log_file);
-    }
-
-    // Evolutionary loop
-    for (u32 generation = 1; generation <= solver->max_generations; generation++) {
-        printf("GA at generation %u/%u........\r", generation, solver->max_generations);
-        ShuffleArrayU32(solver->r, solver->population_size, 0, solver->population_size - 1);
-        for (u32 i = 0; i < solver->population_size - 1; i++) {
+static void GASolverEvolve(GASolver *solver, u32 n_generations) {
+    for (u32 i = 0; i < n_generations; i++) {
+        // TODO: better selection
+        ShuffleArrayU32(
+            solver->r,
+            solver->parameters.population_size,
+            0,
+            solver->parameters.population_size - 1
+        );
+        for (u32 i = 0; i < solver->parameters.population_size - 1; i++) {
             // Crossover
             u32 p1_idx = solver->r[i];
             u32 p2_idx = solver->r[i + 1];
-            u32 c_idx = solver->population_size;
-            GASolverCrossover(solver, p1_idx, p2_idx, c_idx);
+            u32 c_idx = solver->parameters.population_size;
+            GASolverCrossoverIndividuals(
+                solver,
+                p1_idx,
+                p2_idx,
+                c_idx
+            );
 
-            // TODO: better selection
             f64 p1_fitness = solver->population_fitness[p1_idx];
-            f64 child_fitness = TourEvaluate(solver->problem, TourArrayAt(&solver->population, solver->population_size));
+            f64 child_fitness = TourEvaluate(
+                solver->parameters.problem,
+                TourArrayAt(&solver->population, solver->parameters.population_size)
+            );
             f64 replacement_probability = child_fitness/(p1_fitness + child_fitness);
             if (child_fitness > p1_fitness && CoinFlip(replacement_probability)) {
-                TourCopy(TourArrayAt(&solver->population, p1_idx), TourArrayAt(&solver->population, c_idx), solver->problem->n_cities);
+                TourCopy(
+                    TourArrayAt(&solver->population, p1_idx),
+                    TourArrayAt(&solver->population, c_idx), 
+                    solver->parameters.problem->n_cities
+                );
             }
         }
 
         // Mutation
-        for (u32 i = 0; i < solver->population_size; i++) {
-            if (CoinFlip(solver->mutation_rate)) {
-                GASolverMutate(solver, i);
+        for (u32 i = 0; i < solver->parameters.population_size; i++) {
+            if (CoinFlip(solver->parameters.mutation_rate)) {
+                GASolverMutateIndividual(
+                    solver,
+                    i,
+                    RandomF64(0.0, solver->parameters.max_mutation_strength)
+                );
             }
         }
-
         GASolverCalculatePopulationFitness(solver);
 
-        if (log_file) {
-            GAWriteGenerationSummary(solver, &edge_counter, log_file);
-        }
+        // TODO: log stuff out
     }
-    printf("\n");
+}
 
-    if (log_file) {
-        CounterFree(&edge_counter);
-        fclose(log_file);
-    }
-
-    u32 *best_tour = NULL;
-    f64 best_fitness = -INFINITY;
-    for (u32 i = 0; i < solver->population_size; i++) {
-        u32 *individual = TourArrayAt(&solver->population, i);
+static u32 *GASolverBestIndividual(GASolver *solver) {
+    f64 best_fitness = solver->population_fitness[0];
+    u32 *best_tour = TourArrayAt(&solver->population, 0);
+    for (u32 i = 1; i < solver->parameters.population_size; i++) {
         f64 fitness = solver->population_fitness[i];
         if (fitness > best_fitness) {
-            best_tour = individual;
             best_fitness = fitness;
+            best_tour = TourArrayAt(&solver->population, i);
         }
     }
     return best_tour;
 }
 
+static void GASolverRandomizeIndividual(GASolver *solver, u32 index) {
+    assert(index < solver->parameters.population_size);
+    TourRandomize(
+        TourArrayAt(&solver->population, index),
+        solver->parameters.problem->n_cities
+    );
+}
+
 static void GASolverCalculatePopulationFitness(GASolver *solver) {
-    for (u32 i = 0; i < solver->population_size; i++) {
-        solver->population_fitness[i] = TourEvaluate(solver->problem, TourArrayAt(&solver->population, i));
+    for (u32 i = 0; i < solver->parameters.population_size; i++) {
+        solver->population_fitness[i] = TourEvaluate(
+            solver->parameters.problem,
+            TourArrayAt(&solver->population, i)
+        );
     }
 }
 
-// TODO: add mutation strength parameters
-// TODO: mutation point selection could be biased
-// TODO: since genes are circular, allow for shuffles that cross boundary
-static void GASolverMutate(GASolver *solver, u32 individual_idx) {
-    u32 *individual = TourArrayAt(&solver->population, individual_idx);
+static void GASolverMutateIndividual(GASolver *solver, u32 index, f64 strength) {
+    (void)strength;
+    assert(0.0 <= strength && strength <= solver->parameters.max_mutation_strength);
+    u32 *individual = TourArrayAt(&solver->population, index);
 
-    if (CoinFlip(0.05)) {
-        u32 mutation_start = RandomI32(0, solver->problem->n_cities - 1);
-        u32 mutation_end = RandomI32(0, solver->problem->n_cities - 1);
-        if (CoinFlip(0.5)) {
-            ShuffleArrayU32(individual, solver->problem->n_cities, mutation_start, mutation_end);
-        } else {
-            ReverseArrayU32(individual, solver->problem->n_cities, mutation_start, mutation_end);
-        }
-    } else {
-        u32 i = RandomI32(0, solver->problem->n_cities - 1);
-        u32 j = RandomI32(0, solver->problem->n_cities - 1);
+    // TODO: 1/2 of mutations being single swaps is arbitrary and should be a parameter
+    if (CoinFlip(0.5)) {
+        // Swap mutation
+        u32 i = RandomU32(0, solver->parameters.problem->n_cities - 1);
+        u32 j = RandomU32(0, solver->parameters.problem->n_cities - 1);
         u32 temp = individual[i];
         individual[i] = individual[j];
         individual[j] = temp;
+    } else if (CoinFlip(0.5)) {
+        // PSM mutation
+        // TODO: incorporate strength
+        u32 mutation_start = RandomI32(0, solver->parameters.problem->n_cities - 1);
+        u32 mutation_end = RandomI32(0, solver->parameters.problem->n_cities - 1);
+        ShuffleArrayU32(individual, solver->parameters.problem->n_cities, mutation_start, mutation_end);
+    } else {
+        // RSM mutation
+        // TODO: incorporate strength
+        u32 mutation_start = RandomI32(0, solver->parameters.problem->n_cities - 1);
+        u32 mutation_end = RandomI32(0, solver->parameters.problem->n_cities - 1);
+        ReverseArrayU32(individual, solver->parameters.problem->n_cities, mutation_start, mutation_end);
     }
 }
 
-static void GASolverCrossover(GASolver *solver, u32 p1_idx, u32 p2_idx, u32 c_idx) {
+static void GASolverCrossoverIndividuals(GASolver *solver, u32 p1_index, u32 p2_index, u32 c_index) {
     TableClear(&solver->child_city_table);
 
-    u32 *parent1 = TourArrayAt(&solver->population, p1_idx);
-    u32 *parent2 = TourArrayAt(&solver->population, p2_idx);
-    u32 *child = TourArrayAt(&solver->population, c_idx);
+    u32 *parent1 = TourArrayAt(&solver->population, p1_index);
+    u32 *parent2 = TourArrayAt(&solver->population, p2_index);
+    u32 *child = TourArrayAt(&solver->population, c_index);
 
     // Copy from parent1
-    i32 crossover_idx = RandomI32(0, solver->problem->n_cities - 1);
-    u32 crossover_len = RandomI32(0, solver->problem->n_cities);
+    i32 crossover_idx = RandomI32(0, solver->parameters.problem->n_cities - 1);
+    u32 crossover_len = RandomI32(0, solver->parameters.problem->n_cities);
     for (u32 j = 0; j < crossover_len; j++) {
-        u32 city = parent1[(crossover_idx + j)%solver->problem->n_cities];
+        u32 city = parent1[(crossover_idx + j)%solver->parameters.problem->n_cities];
         child[j] = city;
         TableInsert(&solver->child_city_table, city);
     }
 
     // Copy from parent2
-    u32 cities_to_add = solver->problem->n_cities - crossover_len;
+    u32 cities_to_add = solver->parameters.problem->n_cities - crossover_len;
     u32 parent2_idx = 0;
     while (crossover_len > 0 && parent2[parent2_idx] != child[crossover_len - 1]) {
         parent2_idx++;
@@ -347,6 +338,7 @@ static void GASolverCrossover(GASolver *solver, u32 p1_idx, u32 p2_idx, u32 c_id
             child[child_idx++] = city;
             cities_to_add--;
         }
-        parent2_idx = (parent2_idx + 1)%solver->problem->n_cities;
+        parent2_idx = (parent2_idx + 1)%solver->parameters.problem->n_cities;
     }
 }
+// ====================

@@ -6,6 +6,7 @@
 #define DEFAULT_POPULATION_SIZE (100)
 #define DEFAULT_MAX_GENERATIONS (100)
 #define DEFAULT_MUTATION_RATE (0.01)
+#define DEFAULT_MAX_MUTATION_STRENGTH (0.1)
 
 int main(int argc, char *argv[]) {
     SeedRNG();
@@ -16,6 +17,7 @@ int main(int argc, char *argv[]) {
     u32 population_size = DEFAULT_POPULATION_SIZE;
     u32 max_generations = DEFAULT_MAX_GENERATIONS;
     f64 mutation_rate = DEFAULT_MUTATION_RATE;
+    f64 max_mutation_strength = DEFAULT_MAX_MUTATION_STRENGTH;
     struct option options[] = {
         {"tsp_in", required_argument, NULL, 0},
         {"tour_out", required_argument, NULL, 0},
@@ -67,24 +69,21 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    GASolver ga_solver = (GASolver){
-        .log_path = summary_out,
-        .problem = &problem,
-        .population_size = population_size,
-        .max_generations = max_generations,
-        .mutation_rate = mutation_rate,
-        .seed_tours = NULL
-    };
-    if (!GASolverInit(&ga_solver)) {
-        puts("Couldn't initialize GA!");
-        TSPInstanceFree(&problem);
-        return EXIT_FAILURE;
-    }
 
-    u32 *tour = GASolverSolve(&ga_solver);
+    u32 *tour = SolveGA(
+        (GAParameters){
+            .summary_out = summary_out,
+            .edge_entropy_out = NULL,
+            .edge_heat_out = NULL,
+            .problem = &problem,
+            .population_size = population_size,
+            .max_generations = max_generations,
+            .mutation_rate = mutation_rate,
+            .max_mutation_strength = max_mutation_strength
+        }
+    );
     if (!tour) {
         puts("Couldn't get a tour from GA!");
-        GASolverFree(&ga_solver);
         TSPInstanceFree(&problem);
         return EXIT_FAILURE;
     }
@@ -92,7 +91,7 @@ int main(int argc, char *argv[]) {
         TourWriteToFile(tour, problem.n_cities, "TSP tour", "Found by GA", tour_out);
     }
 
-    GASolverFree(&ga_solver);
+    TourFree(tour);
     TSPInstanceFree(&problem);
     return EXIT_SUCCESS;
 }

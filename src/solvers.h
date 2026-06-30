@@ -4,48 +4,50 @@
 #include "tsp.h"
 #include "util.h"
 
-#define MAX_CITIES_FOR_SUMMARY (0x2 << 16)
+#define MAX_CITIES_FOR_EDGE_STATISTICS (10000)
 
 // Just go from 1 -> 2 -> ... -> n
 u32 *SolveBasic(const TSPInstance *tsp_instance);
 
 // Greedy, nearest neighbour solver TODO: optimize
-u32 *SolveGreedy(const TSPInstance *tsp_instance);
+u32 *SolveGreedy(const TSPInstance *tsp_instance, u32 starting_city);
 
 // Our homebrew GA method
 typedef struct {
-    // Optional metric logging (provide NULL if unneeded)
-    const char *log_path;
+    // Fitness summary file path (NULL if unneeded)
+    const char *summary_out;
 
-    // TSP problem instance
+    // Edge entropy file path (NULL if unneeded)
+    const char *edge_entropy_out;
+
+    // Edge heatmap file path (NULL if unneeded)
+    const char *edge_heat_out;
+
+    // TSP problem instance to solve
     const TSPInstance *problem;
 
     // GA parameters
     u32 population_size;
     u32 max_generations;
     f64 mutation_rate;
+    f64 max_mutation_strength;
 
     // Optional seeds
-    const u32 *seed_tours;
-    u32 n_seeds;
+    const TourArray *seeds;
     f64 seed_percentage;
+} GAParameters;
 
-    // GA data
-    TourArray population;
-    f64 *population_fitness;
-    u32 *r;
-    Table child_city_table;
-} GASolver;
+// // Initializes data of GA solver and returns if it succeeded or not
+// bool GASolverInit(GASolver *solver);
+// 
+// // Frees GA data
+// void GASolverFree(GASolver *solver);
 
-// Initializes data of GA solver and returns if it succeeded or not
-bool GASolverInit(GASolver *solver);
-
-// Frees GA data
-void GASolverFree(GASolver *solver);
+// Runs the GA algorithm and returns best found tour
+// u32 *GASolverSolve(GASolver *solver);
 
 // TODO: possibly keep track of best tours over generations?
-// Runs the GA algorithm and returns best found tour
-u32 *GASolverSolve(GASolver *solver);
+u32 *SolveGA(GAParameters parameters);
 
 // TODO: Island based method
 
