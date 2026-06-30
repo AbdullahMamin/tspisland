@@ -61,15 +61,15 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    TSPInstance problem = TSPInstanceInitFromFile(tsp_in);
-    if (!TSPInstanceOkay(problem)) {
+    TSPInstance problem = TSPInstanceInit(tsp_in);
+    if (!TSPInstanceOkay(&problem)) {
         puts("Couldn't load TSP problem instance!");
         return EXIT_FAILURE;
     }
 
     GASolver ga_solver = (GASolver){
         .log_path = summary_out,
-        .problem = problem,
+        .problem = &problem,
         .population_size = population_size,
         .max_generations = max_generations,
         .mutation_rate = mutation_rate,
@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
     };
     if (!GASolverInit(&ga_solver)) {
         puts("Couldn't initialize GA!");
-        TSPInstanceDelete(problem);
+        TSPInstanceFree(&problem);
         return EXIT_FAILURE;
     }
 
@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
     if (!tour) {
         puts("Couldn't get a tour from GA!");
         GASolverFree(&ga_solver);
-        TSPInstanceDelete(problem);
+        TSPInstanceFree(&problem);
         return EXIT_FAILURE;
     }
     if (tour_out) {
@@ -93,6 +93,6 @@ int main(int argc, char *argv[]) {
     }
 
     GASolverFree(&ga_solver);
-    TSPInstanceDelete(problem);
+    TSPInstanceFree(&problem);
     return EXIT_SUCCESS;
 }

@@ -20,34 +20,34 @@ typedef struct {
 } TSPInstance;
 
 // Read and allocate TSP instance from a .tsp file
-TSPInstance TSPInstanceInitFromFile(const char *tsp_path);
+TSPInstance TSPInstanceInit(const char *tsp_path);
 
-// Delete TSP instance
-void TSPInstanceDelete(TSPInstance tsp_instance);
+// Free TSP instance memory
+void TSPInstanceFree(TSPInstance *tsp_instance);
 
 // Check if TSP instance reading worked
-bool TSPInstanceOkay(TSPInstance tsp_instance);
+bool TSPInstanceOkay(const TSPInstance *tsp_instance);
 
 typedef struct {
     u32 n_tours;
     u32 n_cities;
     u32 *tours;
-} TourBuffer;
+} TourArray;
 
-// Allocate tour buffer memory
-TourBuffer TourBufferAlloc(TSPInstance tsp_instance, u32 n_tours);
+// Allocate tour array memory
+TourArray TourArrayInit(const TSPInstance *tsp_instance, u32 n_tours);
 
-// Free tour buffer memory
-void TourBufferFree(TourBuffer tour_buffer);
+// Free tour array memory
+void TourArrayFree(TourArray *tour_array);
 
-// Check if tour buffer allocation worked
-bool TourBufferOkay(TourBuffer tour_buffer);
+// Check if tour array allocation worked
+bool TourArrayOkay(const TourArray *tour_array);
 
-// Copies tours from src buffer to dst buffer
-void TourBufferCopy(TourBuffer dst_buffer, TourBuffer src_buffer);
+// Copies tours from src array to dst array
+void TourArrayCopy(TourArray *dst_array, const TourArray *src_array);
 
-// Returns tour at specific index
-u32 *TourAt(TourBuffer tour_buffer, u32 index);
+// Returns tour at specific index of array
+u32 *TourArrayAt(TourArray *tour_array, u32 i);
 
 // Randomizes a tour
 void TourRandomize(u32 *tour, u32 n_cities);
@@ -56,24 +56,30 @@ void TourRandomize(u32 *tour, u32 n_cities);
 // Uses a table to make the complexity O(N)
 // If the table is not provided, will create one on the fly and free it
 // If the table is provided, will clear the table and fill it, but won't free it after
-bool TourIsValid(u32 *tour, u32 n_cities, Table *table);
+bool TourIsValid(const u32 *tour, u32 n_cities, Table *table);
 
-// Returns a "score" of a tour by comparing it against an upper bound
-f64 TourEvaluate(TSPInstance tsp_instance, u32 *tour);
+// Returns a "score" of a tour by taking the reciprocal of its length multiplied by the longest edge length
+f64 TourEvaluate(const TSPInstance *tsp_instance, const u32 *tour);
 
-// Returns the length of a tour
-f64 TourLength(TSPInstance tsp_instance, u32 *tour);
+// Returns the length of a tour according to TSPLib95 rounding
+f64 TourLength(const TSPInstance *tsp_instance, const u32 *tour);
 
 // Copies src tour into dst tour
-void TourCopy(u32 *tour_dst, u32 *tour_src, u32 n_cities);
+void TourCopy(u32 *dst_tour, const u32 *src_tour, u32 n_cities);
 
-// Allocate single tour
-u32 *TourAlloc(u32 n_cities);
+// Allocate a single tour
+u32 *TourInit(u32 n_cities);
 
-// Reads a tour from a TSP file and returns if it succeeded
+// Free tour
+void TourFree(u32 *tour);
+
+// Checks if tour allocation worked
+bool TourOkay(const u32 *tour);
+
+// Reads a tour from a TSP file and returns if it succeeded (tour must already be allocated)
 bool TourReadFromFile(u32 *tour, u32 n_cities, const char *file_path);
 
-// Writes found tour to TSP file
-void TourWriteToFile(u32 *tour, u32 n_cities, const char *name, const char *comment, const char *file_path);
+// Writes a tour to TSP file
+void TourWriteToFile(const u32 *tour, u32 n_cities, const char *name, const char *comment, const char *file_path);
 
 #endif // TSP_H
