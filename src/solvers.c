@@ -282,7 +282,6 @@ static void GASolverCalculatePopulationFitness(GASolver *solver) {
 }
 
 static void GASolverMutateIndividual(GASolver *solver, u32 index, f64 strength) {
-    (void)strength;
     assert(0.0 <= strength && strength <= solver->parameters.max_mutation_strength);
     u32 *individual = TourArrayAt(&solver->population, index);
 
@@ -297,14 +296,24 @@ static void GASolverMutateIndividual(GASolver *solver, u32 index, f64 strength) 
     } else if (CoinFlip(0.5)) {
         // PSM mutation
         // TODO: incorporate strength
-        u32 mutation_start = RandomI32(0, solver->parameters.problem->n_cities - 1);
-        u32 mutation_end = RandomI32(0, solver->parameters.problem->n_cities - 1);
+        i32 mutation_point = RandomI32(0, solver->parameters.problem->n_cities - 1);
+        i32 half_mutation_length = RoundNearest(0.5*strength*solver->parameters.problem->n_cities);
+        i32 mutation_start = mutation_point - half_mutation_length;
+        if (mutation_start < 0) {
+            mutation_start += solver->parameters.problem->n_cities;
+        }
+        i32 mutation_end = (mutation_point + half_mutation_length)%solver->parameters.problem->n_cities;
         ShuffleArrayU32(individual, solver->parameters.problem->n_cities, mutation_start, mutation_end);
     } else {
         // RSM mutation
         // TODO: incorporate strength
-        u32 mutation_start = RandomI32(0, solver->parameters.problem->n_cities - 1);
-        u32 mutation_end = RandomI32(0, solver->parameters.problem->n_cities - 1);
+        i32 mutation_point = RandomI32(0, solver->parameters.problem->n_cities - 1);
+        i32 half_mutation_length = RoundNearest(0.5*strength*solver->parameters.problem->n_cities);
+        i32 mutation_start = mutation_point - half_mutation_length;
+        if (mutation_start < 0) {
+            mutation_start += solver->parameters.problem->n_cities;
+        }
+        i32 mutation_end = (mutation_point + half_mutation_length)%solver->parameters.problem->n_cities;
         ReverseArrayU32(individual, solver->parameters.problem->n_cities, mutation_start, mutation_end);
     }
 }
@@ -317,8 +326,8 @@ static void GASolverCrossoverIndividuals(GASolver *solver, u32 p1_index, u32 p2_
     u32 *child = TourArrayAt(&solver->population, c_index);
 
     // Copy from parent1
-    i32 crossover_idx = RandomI32(0, solver->parameters.problem->n_cities - 1);
-    u32 crossover_len = RandomI32(0, solver->parameters.problem->n_cities);
+    u32 crossover_idx = RandomU32(0, solver->parameters.problem->n_cities - 1);
+    u32 crossover_len = RandomU32(0, solver->parameters.problem->n_cities);
     for (u32 j = 0; j < crossover_len; j++) {
         u32 city = parent1[(crossover_idx + j)%solver->parameters.problem->n_cities];
         child[j] = city;
