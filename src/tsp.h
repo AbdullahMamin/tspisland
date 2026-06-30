@@ -6,7 +6,7 @@
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
-#include "hash.h"
+#include "dsa.h"
 #include "vector.h"
 
 // TODO: other kinds of TSP instances (not just 2D euclidean)
