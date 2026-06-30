@@ -37,7 +37,7 @@ void TableFree(Table *table) {
     }
 }
 
-bool TableOkay(Table *table) {
+bool TableOkay(const Table *table) {
     return table->values != NULL;
 }
 
@@ -71,7 +71,7 @@ void TableInsert(Table *table, u32 key) {
     assert(false);
 }
 
-bool TableHas(Table *table, u32 key) {
+bool TableHas(const Table *table, u32 key) {
     assert(TableOkay(table));
 
     // Early return if table is empty
@@ -113,7 +113,7 @@ void CounterFree(Counter *counter) {
     }
 }
 
-bool CounterOkay(Counter *counter) {
+bool CounterOkay(const Counter *counter) {
     return counter->counts != NULL;
 }
 

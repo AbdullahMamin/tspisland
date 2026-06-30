@@ -32,7 +32,7 @@ Table TableInit(u32 max_inserts);
 void TableFree(Table *table);
 
 // Check if table allocation worked
-bool TableOkay(Table *table);
+bool TableOkay(const Table *table);
 
 // Clears a table of all elements
 void TableClear(Table *table);
@@ -41,7 +41,7 @@ void TableClear(Table *table);
 void TableInsert(Table *table, u32 key);
 
 // Check if table has a certain key in it
-bool TableHas(Table *table, u32 key);
+bool TableHas(const Table *table, u32 key);
 
 // Counter with u32 keys
 typedef struct {
@@ -56,7 +56,7 @@ Counter CounterInit(u32 capacity);
 void CounterFree(Counter *counter);
 
 // Check if counter allocation worked
-bool CounterOkay(Counter *counter);
+bool CounterOkay(const Counter *counter);
 
 // Clears all counts
 void CounterClear(Counter *counter);
