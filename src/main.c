@@ -9,6 +9,8 @@
 #define DEFAULT_MUTATION_RATE (0.01)
 #define DEFAULT_MAX_MUTATION_STRENGTH (0.5)
 #define DEFAULT_SEED_PERCENTAGE (0.1)
+#define DEFAULT_EPOCH_LENGTH (10)
+#define DEFAULT_MIGRATION_RATE (0.1)
 
 void MasterWork(void);
 void SlaveWork(void);
