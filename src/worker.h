@@ -29,4 +29,7 @@ int GetArgc(void);
 // Easy access to argv where needed
 char **GetArgv(void);
 
+// Returns n_procs
+int GetWorkerCount(void);
+
 #endif // WORKER_H

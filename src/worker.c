@@ -43,3 +43,7 @@ int GetArgc(void) {
 char **GetArgv(void) {
     return g_argv;
 }
+
+int GetWorkerCount(void) {
+    return g_n_procs;
+}
