@@ -23,6 +23,9 @@ typedef struct {
     // Edge heatmap file path (NULL if unneeded)
     const char *edge_heat_out;
 
+    // Seed tour file path (NULL if unneeded)
+    const char *seed_in;
+
     // TSP problem instance to solve
     const TSPInstance *problem;
 
@@ -31,9 +34,6 @@ typedef struct {
     u32 max_generations;
     f64 mutation_rate;
     f64 max_mutation_strength;
-
-    // Optional seeds
-    const TourArray *seeds;
     f64 seed_percentage;
 } GAParameters;
 

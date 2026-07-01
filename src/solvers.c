@@ -138,12 +138,7 @@ static GASolver GASolverInit(GAParameters parameters) {
         return solver;
     }
 
-    if (parameters.seeds && !TourArrayOkay(parameters.seeds)) {
-        puts("Seeds not provided!");
-        return solver;
-    }
-
-    if (parameters.seeds && (parameters.seed_percentage < 0.0 || parameters.seed_percentage > 1.0)) {
+    if (parameters.seed_in && (parameters.seed_percentage < 0.0 || parameters.seed_percentage > 1.0)) {
         puts("Seed percentage needs to be between 0.0 and 1.0!");
         return solver;
     }
@@ -202,9 +197,30 @@ static GASolver GASolverInit(GAParameters parameters) {
         }
     }
 
-    // TODO: add seeds
     for (u32 i = 0; i < parameters.population_size; i++) {
         GASolverRandomizeIndividual(&solver, i);
+    }
+    // Add seed
+    if (parameters.seed_in) {
+        // TODO: fix all this ugly nesting
+        u32 *seed_tour = TourInit(parameters.problem->n_cities);
+        if (!TourOkay(seed_tour)) {
+            puts("Couldn't allocate seed tour!");
+        } else {
+            if (!TourReadFromFile(seed_tour, parameters.problem->n_cities, parameters.seed_in)) {
+                puts("Couldn't allocate seed tour!");
+            } else {
+                u32 n_seeds = parameters.seed_percentage*parameters.population_size;
+                for (u32 i = 0; i < n_seeds; i++) {
+                    TourCopy(
+                        TourArrayAt(&solver.population, i),
+                        seed_tour,
+                        parameters.problem->n_cities
+                    );
+                }
+            }
+            TourFree(seed_tour);
+        }
     }
     GASolverCalculatePopulationFitness(&solver);
 
