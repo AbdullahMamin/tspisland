@@ -486,7 +486,8 @@ static void GASolverDoLogs(GASolver *solver) {
                     continue;
                 }
                 f64 p = (f64)edge_count/(f64)solver->parameters.population_size;
-                fprintf(solver->edge_heat_file, "%u\n%u\n%f\n", from, to, p);
+                // + 1 since TSPLib indexes cities starting at 1
+                fprintf(solver->edge_heat_file, "%u\n%u\n%f\n", from + 1, to + 1, p);
             }
         }
         fprintf(solver->edge_heat_file, "---\n");
