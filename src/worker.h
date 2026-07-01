@@ -2,6 +2,7 @@
 #ifndef WORKER_H
 #define WORKER_H
 #include <mpi.h>
+#include <stdio.h>
 
 #define MASTER_RANK (0)
 

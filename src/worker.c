@@ -12,9 +12,11 @@ void InitWorkers(int *argc, char ***argv) {
     g_argv = *argv;
     MPI_Comm_size(MPI_COMM_WORLD, &g_n_procs);
     MPI_Comm_rank(MPI_COMM_WORLD, &g_rank);
+    WorkerPrintf("Hello!\n");
 }
 
 void DeinitWorkers(void) {
+    WorkerPrintf("Goodbye!\n");
     MPI_Finalize();
 }
 
