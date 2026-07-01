@@ -7,6 +7,7 @@
 #define DEFAULT_MAX_GENERATIONS (100)
 #define DEFAULT_MUTATION_RATE (0.01)
 #define DEFAULT_MAX_MUTATION_STRENGTH (0.5)
+#define DEFAULT_SEED_PERCENTAGE (0.1)
 
 int main(int argc, char *argv[]) {
     SeedRNG();
@@ -16,20 +17,24 @@ int main(int argc, char *argv[]) {
     char *summary_out = NULL;
     char *entropy_out = NULL;
     char *heat_out = NULL;
+    char *seed_in = NULL;
     u32 population_size = DEFAULT_POPULATION_SIZE;
     u32 max_generations = DEFAULT_MAX_GENERATIONS;
     f64 mutation_rate = DEFAULT_MUTATION_RATE;
     f64 max_mutation_strength = DEFAULT_MAX_MUTATION_STRENGTH;
+    f64 seed_percentage = DEFAULT_SEED_PERCENTAGE;
     struct option options[] = {
         {"tsp_in", required_argument, NULL, 0},
         {"tour_out", required_argument, NULL, 0},
         {"summary_out", required_argument, NULL, 0},
         {"entropy_out", required_argument, NULL, 0},
         {"heat_out", required_argument, NULL, 0},
+        {"seed_in", required_argument, NULL, 0},
         {"population_size", required_argument, NULL, 0},
         {"max_generations", required_argument, NULL, 0},
         {"mutation_rate", required_argument, NULL, 0},
-        {"max_mutation_strength", required_argument, NULL, 0}
+        {"max_mutation_strength", required_argument, NULL, 0},
+        {"seed_percentage", required_argument, NULL, 0}
     };
 
     int c;
@@ -54,16 +59,22 @@ int main(int argc, char *argv[]) {
                 heat_out = optarg;
             } break;
             case 5: {
-                population_size = atoll(optarg);
+                seed_in = optarg;
             } break;
             case 6: {
-                max_generations = atoll(optarg);
+                population_size = atoll(optarg);
             } break;
             case 7: {
-                mutation_rate = atof(optarg);
+                max_generations = atoll(optarg);
             } break;
             case 8: {
+                mutation_rate = atof(optarg);
+            } break;
+            case 9: {
                 max_mutation_strength = atof(optarg);
+            } break;
+            case 10: {
+                seed_percentage = atof(optarg);
             } break;
             default: {
                 puts("getopt returned something weird!");
@@ -83,17 +94,18 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-
     u32 *tour = SolveGA(
         (GAParameters){
             .summary_out = summary_out,
             .edge_entropy_out = entropy_out,
             .edge_heat_out = heat_out,
+            .seed_in = seed_in,
             .problem = &problem,
             .population_size = population_size,
             .max_generations = max_generations,
             .mutation_rate = mutation_rate,
-            .max_mutation_strength = max_mutation_strength
+            .max_mutation_strength = max_mutation_strength,
+            .seed_percentage = seed_percentage
         }
     );
     if (!tour) {
