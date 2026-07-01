@@ -1,22 +1,24 @@
 # A set of quick experiments on various test data. Outputs go to out/experiments
 echo "== Running experiments... =="
 
+n_procs=6
+
 population_size=100
-max_generations=4000
+max_generations=100
 mutation_rate=0.01
-max_mutation_strength=0.01
+max_mutation_strength=0.05
 
 tsplib_path="data/tsplib"
 # problems=("eil51" "fl417" "lin105" "berlin52" "ch130" "ch150" "bier127" "p654" "d2103" "fl1400" "kroB200")
 # problems=("d2103")
-# problems=("berlin52")
-problems=("lin105")
+problems=("berlin52")
+# problems=("lin105")
 
 cd ./out/bin
 for problem in ${problems[@]}
 do
     echo "> Doing" $problem
-    ./tspisland --tsp_in=../../$tsplib_path/$problem.tsp --tour_out=../experiments/$problem.tour --population_size=$population_size --max_generations=$max_generations --mutation_rate=$mutation_rate --max_mutation_strength=$max_mutation_strength --summary_out=../experiments/$problem.summary.csv --entropy_out=../experiments/$problem.entropy.csv --heat_out=../experiments/$problem.heat
+    mpirun -np $n_procs tspisland --tsp_in=../../$tsplib_path/$problem.tsp --tour_out=../experiments/$problem.tour --population_size=$population_size --max_generations=$max_generations --mutation_rate=$mutation_rate --max_mutation_strength=$max_mutation_strength --summary_out=../experiments/$problem.summary.csv --entropy_out=../experiments/$problem.entropy.csv --heat_out=../experiments/$problem.heat
     echo "> Done with" $problem
 done
 
