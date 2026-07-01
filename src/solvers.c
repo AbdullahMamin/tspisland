@@ -92,6 +92,7 @@ u32 *SolveGA(GAParameters parameters) {
     }
 
     GASolverDoLogHeaders(&solver);
+    GASolverDoLogs(&solver);
     GASolverEvolve(&solver, parameters.max_generations);
     TourCopy(best_tour, GASolverBestIndividual(&solver), parameters.problem->n_cities);
 
@@ -457,7 +458,9 @@ static void GASolverDoLogs(GASolver *solver) {
                     from = to;
                     to = temp;
                 }
-                u32 edge_idx = from*(from + 1)/2 + (to - from - 1);
+                u32 row = solver->parameters.problem->n_cities - from - 2;
+                u32 col = to - from - 1;
+                u32 edge_idx = row*(row + 1)/2 + col;
                 CounterIncrement(&solver->edge_counter, edge_idx, 1);
             }
         }
@@ -480,7 +483,9 @@ static void GASolverDoLogs(GASolver *solver) {
     if (solver->edge_heat_file) {
         for (u32 from = 0; from < solver->parameters.problem->n_cities - 1; from++) {
             for (u32 to = from + 1; to < solver->parameters.problem->n_cities; to++) {
-                u32 edge_idx = from*(from + 1)/2 + (to - from - 1);
+                u32 row = solver->parameters.problem->n_cities - from - 2;
+                u32 col = to - from - 1;
+                u32 edge_idx = row*(row + 1)/2 + col;
                 u32 edge_count = CounterCount(&solver->edge_counter, edge_idx);
                 if (edge_count == 0) {
                     continue;
