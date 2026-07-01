@@ -38,15 +38,6 @@ typedef struct {
     f64 seed_percentage;
 } GAParameters;
 
-// // Initializes data of GA solver and returns if it succeeded or not
-// bool GASolverInit(GASolver *solver);
-// 
-// // Frees GA data
-// void GASolverFree(GASolver *solver);
-
-// Runs the GA algorithm and returns best found tour
-// u32 *GASolverSolve(GASolver *solver);
-
 // TODO: possibly keep track of best tours over generations?
 u32 *SolveGA(GAParameters parameters);
 
