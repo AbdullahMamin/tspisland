@@ -523,6 +523,7 @@ typedef struct {
 static IslandSolver IslandSolverInit(GAParameters ga_parameters, IslandParameters island_parameters);
 static void IslandSolverFree(IslandSolver *solver);
 static bool IslandSolverOkay(const IslandSolver *solver);
+static void IslandSolverDoMigrations(IslandSolver *solver);
 
 u32 *SolveIsland(GAParameters ga_parameters, IslandParameters island_parameters) {
     IslandSolver solver = IslandSolverInit(ga_parameters, island_parameters);
@@ -536,10 +537,18 @@ u32 *SolveIsland(GAParameters ga_parameters, IslandParameters island_parameters)
         return NULL;
     }
 
-    // GASolverDoLogHeaders(&solver);
-    // GASolverDoLogs(&solver);
-    // GASolverEvolve(&solver, parameters.max_generations);
-    // TourCopy(best_tour, GASolverBestIndividual(&solver), parameters.problem->n_cities);
+    u32 generations_left = ga_parameters.max_generations;
+    while (generations_left > 0) {
+        if (generations_left > island_parameters.epoch_length) {
+            GASolverEvolve(&solver.ga, island_parameters.epoch_length);
+            IslandSolverDoMigrations(&solver);
+            generations_left -= island_parameters.epoch_length;
+        } else {
+            GASolverEvolve(&solver.ga, generations_left);
+            generations_left = 0;
+        }
+    }
+    TourCopy(best_tour, GASolverBestIndividual(&solver.ga), ga_parameters.problem->n_cities);
 
     IslandSolverFree(&solver);
     return best_tour;
@@ -547,8 +556,8 @@ u32 *SolveIsland(GAParameters ga_parameters, IslandParameters island_parameters)
 
 static IslandSolver IslandSolverInit(GAParameters ga_parameters, IslandParameters island_parameters) {
     // TODO: check island_parameters
-    if (island_parameters.epoch_length > ga_parameters.max_generations) {
-        WorkerPrintf("Migration epoch longer than max generations of island!\n");
+    if (island_parameters.epoch_length >= ga_parameters.max_generations) {
+        WorkerPrintf("Migration epoch must be less than max generations of island!\n");
         exit(EXIT_FAILURE);
     }
     if (island_parameters.migration_rate < 0.0 || island_parameters.migration_rate > 1.0) {
@@ -568,5 +577,10 @@ static void IslandSolverFree(IslandSolver *solver) {
 
 static bool IslandSolverOkay(const IslandSolver *solver) {
     return GASolverOkay(&solver->ga);
+}
+
+static void IslandSolverDoMigrations(IslandSolver *solver) {
+    // TODO
+    (void)solver;
 }
 // =======================
