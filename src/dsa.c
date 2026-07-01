@@ -124,7 +124,12 @@ void CounterClear(Counter *counter) {
     }
 }
 
-u32 *CounterAt(Counter *counter, u32 idx) {
+void CounterIncrement(Counter *counter, u32 idx, u32 amount) {
     assert(CounterOkay(counter) && idx < counter->capacity);
-    return counter->counts + idx;
+    counter->counts[idx] += amount;
+}
+
+u32 CounterCount(const Counter *counter, u32 idx) {
+    assert(CounterOkay(counter) && idx < counter->capacity);
+    return counter->counts[idx];
 }

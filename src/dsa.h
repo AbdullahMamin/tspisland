@@ -61,7 +61,10 @@ bool CounterOkay(const Counter *counter);
 // Clears all counts
 void CounterClear(Counter *counter);
 
-// Returns pointer to counter's count at a specific index
-u32 *CounterAt(Counter *counter, u32 idx);
+// Increment count at idx by amount
+void CounterIncrement(Counter *counter, u32 idx, u32 amount);
+
+// Return count at idx
+u32 CounterCount(const Counter *counter, u32 idx);
 
 #endif // DSA_H
