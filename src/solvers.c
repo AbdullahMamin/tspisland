@@ -54,6 +54,12 @@ u32 *SolveGreedy(const TSPInstance *tsp_instance, u32 starting_city) {
 typedef struct {
     GAParameters parameters;
 
+    // For optional statistics
+    FILE *summary_file;
+    FILE *edge_entropy_file;
+    FILE *edge_heat_file;
+    Counter edge_counter; // for edge statistics
+
     // GA data
     TourArray population;
     f64 *population_fitness;
@@ -70,6 +76,8 @@ static void GASolverRandomizeIndividual(GASolver *solver, u32 index);
 static void GASolverCalculatePopulationFitness(GASolver *solver);
 static void GASolverMutateIndividual(GASolver *solver, u32 index, f64 strength);
 static void GASolverCrossoverIndividuals(GASolver *solver, u32 p1_index, u32 p2_index, u32 c_index);
+static void GASolverDoLogHeaders(GASolver *solver);
+static void GASolverDoLogs(GASolver *solver);
 
 u32 *SolveGA(GAParameters parameters) {
     GASolver solver = GASolverInit(parameters);
@@ -83,6 +91,7 @@ u32 *SolveGA(GAParameters parameters) {
         return NULL;
     }
 
+    GASolverDoLogHeaders(&solver);
     GASolverEvolve(&solver, parameters.max_generations);
     TourCopy(best_tour, GASolverBestIndividual(&solver), parameters.problem->n_cities);
 
@@ -176,17 +185,55 @@ static GASolver GASolverInit(GAParameters parameters) {
         return solver;
     }
 
+    if (parameters.edge_entropy_out || parameters.edge_heat_out) {
+        solver.edge_counter = CounterInit(
+            parameters.problem->n_cities*(parameters.problem->n_cities - 1)/2
+        );
+        if (!CounterOkay(&solver.edge_counter)) {
+            puts("Couldn't allocate edge counter!");
+            TableFree(&solver.child_city_table);
+            free(solver.r);
+            solver.r = NULL;
+            free(solver.population_fitness);
+            solver.population_fitness = NULL;
+            TourArrayFree(&solver.population);
+            return solver;
+        }
+    }
+
     // TODO: add seeds
     for (u32 i = 0; i < parameters.population_size; i++) {
         GASolverRandomizeIndividual(&solver, i);
     }
     GASolverCalculatePopulationFitness(&solver);
 
+    if (parameters.summary_out) {
+        solver.summary_file = fopen(parameters.summary_out, "w");
+    }
+    if (parameters.edge_entropy_out) {
+        solver.edge_entropy_file = fopen(parameters.edge_entropy_out, "w");
+    }
+    if (parameters.edge_heat_out) {
+        solver.edge_heat_file = fopen(parameters.edge_heat_out, "w");
+    }
+
     return solver;
 }
 
 static void GASolverFree(GASolver *solver) {
     assert(GASolverOkay(solver));
+    if (solver->edge_heat_file) {
+        fclose(solver->edge_heat_file);
+    }
+    if (solver->edge_entropy_file) {
+        fclose(solver->edge_entropy_file);
+    }
+    if (solver->summary_file) {
+        fclose(solver->summary_file);
+    }
+    if (solver->parameters.edge_entropy_out || solver->parameters.edge_heat_out) {
+        CounterFree(&solver->edge_counter);
+    }
     TableFree(&solver->child_city_table);
     free(solver->r);
     solver->r = NULL;
@@ -200,7 +247,10 @@ static bool GASolverOkay(const GASolver *solver) {
 }
 
 static void GASolverEvolve(GASolver *solver, u32 n_generations) {
+    printf("Evolving for %u generations:\n", n_generations);
     for (u32 i = 0; i < n_generations; i++) {
+        printf("%u/%u............\r", i + 1, n_generations);
+
         // TODO: better selection
         ShuffleArrayU32(
             solver->r,
@@ -247,8 +297,10 @@ static void GASolverEvolve(GASolver *solver, u32 n_generations) {
         }
         GASolverCalculatePopulationFitness(solver);
 
-        // TODO: log stuff out
+        GASolverDoLogs(solver);
     }
+
+    printf("\n");
 }
 
 static u32 *GASolverBestIndividual(GASolver *solver) {
@@ -293,20 +345,18 @@ static void GASolverMutateIndividual(GASolver *solver, u32 index, f64 strength) 
         u32 temp = individual[i];
         individual[i] = individual[j];
         individual[j] = temp;
-    } else if (CoinFlip(0.5)) {
-        // PSM mutation
-        // TODO: incorporate strength
-        i32 mutation_point = RandomI32(0, solver->parameters.problem->n_cities - 1);
-        i32 half_mutation_length = RoundNearest(0.5*strength*solver->parameters.problem->n_cities);
-        i32 mutation_start = mutation_point - half_mutation_length;
-        if (mutation_start < 0) {
-            mutation_start += solver->parameters.problem->n_cities;
-        }
-        i32 mutation_end = (mutation_point + half_mutation_length)%solver->parameters.problem->n_cities;
-        ShuffleArrayU32(individual, solver->parameters.problem->n_cities, mutation_start, mutation_end);
+    // } else if (CoinFlip(0.5)) {
+    //     // PSM mutation
+    //     i32 mutation_point = RandomI32(0, solver->parameters.problem->n_cities - 1);
+    //     i32 half_mutation_length = RoundNearest(0.5*strength*solver->parameters.problem->n_cities);
+    //     i32 mutation_start = mutation_point - half_mutation_length;
+    //     if (mutation_start < 0) {
+    //         mutation_start += solver->parameters.problem->n_cities;
+    //     }
+    //     i32 mutation_end = (mutation_point + half_mutation_length)%solver->parameters.problem->n_cities;
+    //     ShuffleArrayU32(individual, solver->parameters.problem->n_cities, mutation_start, mutation_end);
     } else {
         // RSM mutation
-        // TODO: incorporate strength
         i32 mutation_point = RandomI32(0, solver->parameters.problem->n_cities - 1);
         i32 half_mutation_length = RoundNearest(0.5*strength*solver->parameters.problem->n_cities);
         i32 mutation_start = mutation_point - half_mutation_length;
@@ -348,6 +398,87 @@ static void GASolverCrossoverIndividuals(GASolver *solver, u32 p1_index, u32 p2_
             cities_to_add--;
         }
         parent2_idx = (parent2_idx + 1)%solver->parameters.problem->n_cities;
+    }
+}
+
+static void GASolverDoLogHeaders(GASolver *solver) {
+    if (solver->summary_file) {
+        fprintf(
+            solver->summary_file,
+            "avg,stddev,min,max\n"
+        );
+    }
+
+    if (solver->edge_entropy_file) {
+        fprintf(
+            solver->edge_entropy_file,
+            "entropy\n"
+        );
+    }
+}
+
+static void GASolverDoLogs(GASolver *solver) {
+    if (solver->summary_file) {
+        f64 min = solver->population_fitness[0];
+        f64 max = min;
+        f64 avg = min;
+        for (u32 i = 1; i < solver->parameters.population_size; i++) {
+            f64 fit = solver->population_fitness[i];
+            if (fit < min) {
+                min = fit;
+            }
+            if (fit > max) {
+                max = fit;
+            }
+            avg += fit;
+        }
+        avg /= solver->parameters.population_size;
+
+        f64 stddev = 0.0;
+        for (u32 i = 0; i < solver->parameters.population_size; i++) {
+            f64 fit = solver->population_fitness[i];
+            f64 diff_sq = (fit - avg)*(fit - avg);
+            stddev += diff_sq;
+        }
+        stddev = sqrt(stddev/solver->parameters.population_size);
+
+        fprintf(solver->summary_file, "%f,%f,%f,%f\n", avg, stddev, min, max);
+    }
+
+    if (solver->edge_entropy_file || solver->edge_heat_file) {
+        CounterClear(&solver->edge_counter);
+        for (u32 i = 0; i < solver->parameters.population_size; i++) {
+            u32 *tour = TourArrayAt(&solver->population, i);
+            for (u32 j = 0; j < solver->parameters.problem->n_cities; j++) {
+                u32 from = tour[j];
+                u32 to = tour[(j + 1)%solver->parameters.problem->n_cities];
+                if (from > to) {
+                    u32 temp = from;
+                    from = to;
+                    to = temp;
+                }
+                u32 edge_idx = from*(from + 1)/2 + (to - from - 1);
+                CounterIncrement(&solver->edge_counter, edge_idx, 1);
+            }
+        }
+    }
+
+    if (solver->edge_entropy_file) {
+        f64 entropy = 0.0;
+        u32 max_edges = solver->parameters.problem->n_cities*(solver->parameters.problem->n_cities - 1)/2;
+        for (u32 i = 0; i < max_edges; i++) {
+            u32 edge_count = CounterCount(&solver->edge_counter, i);
+            if (edge_count == 0) {
+                continue;
+            }
+            f64 p = (f64)edge_count/(f64)solver->parameters.population_size;
+            entropy -= p*log(p);
+        }
+        fprintf(solver->edge_entropy_file, "%f\n", entropy);
+   }
+
+    if (solver->edge_heat_file) {
+        // TODO
     }
 }
 // ====================

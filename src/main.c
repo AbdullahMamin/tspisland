@@ -14,6 +14,8 @@ int main(int argc, char *argv[]) {
     char *tsp_in = NULL;
     char *tour_out = NULL;
     char *summary_out = NULL;
+    char *entropy_out = NULL;
+    char *heat_out = NULL;
     u32 population_size = DEFAULT_POPULATION_SIZE;
     u32 max_generations = DEFAULT_MAX_GENERATIONS;
     f64 mutation_rate = DEFAULT_MUTATION_RATE;
@@ -22,6 +24,8 @@ int main(int argc, char *argv[]) {
         {"tsp_in", required_argument, NULL, 0},
         {"tour_out", required_argument, NULL, 0},
         {"summary_out", required_argument, NULL, 0},
+        {"entropy_out", required_argument, NULL, 0},
+        {"heat_out", required_argument, NULL, 0},
         {"population_size", required_argument, NULL, 0},
         {"max_generations", required_argument, NULL, 0},
         {"mutation_rate", required_argument, NULL, 0},
@@ -44,15 +48,21 @@ int main(int argc, char *argv[]) {
                 summary_out = optarg;
             } break;
             case 3: {
-                population_size = atoll(optarg);
+                entropy_out = optarg;
             } break;
             case 4: {
-                max_generations = atoll(optarg);
+                heat_out = optarg;
             } break;
             case 5: {
-                mutation_rate = atof(optarg);
+                population_size = atoll(optarg);
             } break;
             case 6: {
+                max_generations = atoll(optarg);
+            } break;
+            case 7: {
+                mutation_rate = atof(optarg);
+            } break;
+            case 8: {
                 max_mutation_strength = atof(optarg);
             } break;
             default: {
@@ -77,8 +87,8 @@ int main(int argc, char *argv[]) {
     u32 *tour = SolveGA(
         (GAParameters){
             .summary_out = summary_out,
-            .edge_entropy_out = NULL,
-            .edge_heat_out = NULL,
+            .edge_entropy_out = entropy_out,
+            .edge_heat_out = heat_out,
             .problem = &problem,
             .population_size = population_size,
             .max_generations = max_generations,
