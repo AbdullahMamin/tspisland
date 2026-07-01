@@ -3,6 +3,7 @@
 #define SOLVERS_H
 #include "tsp.h"
 #include "util.h"
+#include "worker.h"
 
 #define MAX_CITIES_FOR_EDGE_STATISTICS (10000)
 

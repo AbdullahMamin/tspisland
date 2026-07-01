@@ -24,7 +24,7 @@ u32 *SolveGreedy(const TSPInstance *tsp_instance, u32 starting_city) {
     tour[0] = starting_city;
     TableInsert(&visited_table, tour[0]);
     for (u32 i = 1; i < tsp_instance->n_cities; i++) {
-        printf("Greedy at iteration %u...\n", i);
+        WorkerPrintf("Greedy at iteration %u...\n", i);
         u32 closest_neighbour = UINT32_MAX;
         f64 shortest_distance = INFINITY;
         for (u32 j = 0; j < tsp_instance->n_cities; j++) {
@@ -86,7 +86,7 @@ u32 *SolveGA(GAParameters parameters) {
     }
     u32 *best_tour = TourInit(parameters.problem->n_cities);
     if (!best_tour) {
-        puts("Couldn't allocate tour buffer!");
+        WorkerPrintf("Couldn't allocate tour buffer!\n");
         GASolverFree(&solver);
         return NULL;
     }
@@ -108,7 +108,7 @@ static GASolver GASolverInit(GAParameters parameters) {
     };
 
     if (!TSPInstanceOkay(parameters.problem)) {
-        puts("Didn't provide valid TSP instance!");
+        WorkerPrintf("Didn't provide valid TSP instance!\n");
         return solver;
     }
 
@@ -116,7 +116,7 @@ static GASolver GASolverInit(GAParameters parameters) {
         (parameters.edge_entropy_out || parameters.edge_heat_out) &&
         parameters.problem->n_cities > MAX_CITIES_FOR_EDGE_STATISTICS
     ) {
-        printf(
+        WorkerPrintf(
             "Can't log edge statistics when problem size is greater than %u!\n",
             MAX_CITIES_FOR_EDGE_STATISTICS
         );
@@ -124,43 +124,43 @@ static GASolver GASolverInit(GAParameters parameters) {
     }
 
     if (parameters.population_size <= 1) {
-        puts("Population must be at least 2!");
+        WorkerPrintf("Population must be at least 2!\n");
         return solver;
     }
 
     if (parameters.mutation_rate < 0.0 || parameters.mutation_rate > 1.0) {
-        puts("Mutation rate must be between 0.0 and 1.0!");
+        WorkerPrintf("Mutation rate must be between 0.0 and 1.0!\n");
         return solver;
     }
 
     if (parameters.max_mutation_strength < 0.0 || parameters.max_mutation_strength > 1.0) {
-        puts("Max mutation strength must be between 0.0 and 1.0!");
+        WorkerPrintf("Max mutation strength must be between 0.0 and 1.0!\n");
         return solver;
     }
 
     if (parameters.seed_in && (parameters.seed_percentage < 0.0 || parameters.seed_percentage > 1.0)) {
-        puts("Seed percentage needs to be between 0.0 and 1.0!");
+        WorkerPrintf("Seed percentage needs to be between 0.0 and 1.0!\n");
         return solver;
     }
 
     // + 1 for children that are created (TODO: use a whole different buffer for children)
     solver.population = TourArrayInit(parameters.problem, parameters.population_size + 1);
     if (!TourArrayOkay(&solver.population)) {
-        puts("Couldn't allocate population!");
+        WorkerPrintf("Couldn't allocate population!\n");
         return solver;
     }
 
     // + 1 for children that are created (TODO: use a whole different buffer for children)
     solver.population_fitness = calloc(parameters.population_size + 1, sizeof(*solver.population_fitness));
     if (!solver.population_fitness) {
-        puts("Couldn't allocate population fitness buffer!");
+        WorkerPrintf("Couldn't allocate population fitness buffer!\n");
         TourArrayFree(&solver.population);
         return solver;
     }
 
     solver.r = calloc(parameters.population_size, sizeof(*solver.r));
     if (!solver.r) {
-        puts("Couldn't allocate population shuffle buffer!");
+        WorkerPrintf("Couldn't allocate population shuffle buffer!\n");
         free(solver.population_fitness);
         solver.population_fitness = NULL;
         TourArrayFree(&solver.population);
@@ -172,7 +172,7 @@ static GASolver GASolverInit(GAParameters parameters) {
 
     solver.child_city_table = TableInit(parameters.problem->n_cities);
     if (!TableOkay(&solver.child_city_table)) {
-        puts("Couldn't allocate child city table!");
+        WorkerPrintf("Couldn't allocate child city table!\n");
         free(solver.r);
         solver.r = NULL;
         free(solver.population_fitness);
@@ -186,7 +186,7 @@ static GASolver GASolverInit(GAParameters parameters) {
             parameters.problem->n_cities*(parameters.problem->n_cities - 1)/2
         );
         if (!CounterOkay(&solver.edge_counter)) {
-            puts("Couldn't allocate edge counter!");
+            WorkerPrintf("Couldn't allocate edge counter!\n");
             TableFree(&solver.child_city_table);
             free(solver.r);
             solver.r = NULL;
@@ -205,10 +205,10 @@ static GASolver GASolverInit(GAParameters parameters) {
         // TODO: fix all this ugly nesting
         u32 *seed_tour = TourInit(parameters.problem->n_cities);
         if (!TourOkay(seed_tour)) {
-            puts("Couldn't allocate seed tour!");
+            WorkerPrintf("Couldn't allocate seed tour!\n");
         } else {
             if (!TourReadFromFile(seed_tour, parameters.problem->n_cities, parameters.seed_in)) {
-                puts("Couldn't allocate seed tour!");
+                WorkerPrintf("Couldn't allocate seed tour!\n");
             } else {
                 u32 n_seeds = parameters.seed_percentage*parameters.population_size;
                 for (u32 i = 0; i < n_seeds; i++) {
@@ -264,9 +264,9 @@ static bool GASolverOkay(const GASolver *solver) {
 }
 
 static void GASolverEvolve(GASolver *solver, u32 n_generations) {
-    printf("Evolving for %u generations:\n", n_generations);
+    WorkerPrintf("Evolving for %u generations:\n", n_generations);
     for (u32 i = 0; i < n_generations; i++) {
-        printf("%u/%u............\r", i + 1, n_generations);
+        WorkerPrintf("%u/%u............\r", i + 1, n_generations);
 
         // TODO: better selection
         ShuffleArrayU32(
@@ -317,7 +317,7 @@ static void GASolverEvolve(GASolver *solver, u32 n_generations) {
         GASolverDoLogs(solver);
     }
 
-    printf("\n");
+    WorkerPrintf("\n");
 }
 
 static u32 *GASolverBestIndividual(GASolver *solver) {

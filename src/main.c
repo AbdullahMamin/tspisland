@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <getopt.h>
 #include "solvers.h"
+#include "worker.h"
 
 #define DEFAULT_POPULATION_SIZE (100)
 #define DEFAULT_MAX_GENERATIONS (100)
@@ -9,9 +10,20 @@
 #define DEFAULT_MAX_MUTATION_STRENGTH (0.5)
 #define DEFAULT_SEED_PERCENTAGE (0.1)
 
-int main(int argc, char *argv[]) {
-    SeedRNG();
+void MasterWork(void);
+void SlaveWork(void);
 
+int main(int argc, char *argv[]) {
+    InitWorkers(&argc, &argv);
+    SeedRNG();
+    MasterDo(MasterWork);
+    SlaveDo(SlaveWork);
+    DeinitWorkers();
+    return EXIT_SUCCESS;
+}
+
+void MasterWork(void) {
+    WorkerPrintf("Hello from master work!\n");
     char *tsp_in = NULL;
     char *tour_out = NULL;
     char *summary_out = NULL;
@@ -39,7 +51,7 @@ int main(int argc, char *argv[]) {
 
     int c;
     int option_index;
-    while ((c = getopt_long_only(argc, argv, "", options, &option_index)) != -1) {
+    while ((c = getopt_long_only(GetArgc(), GetArgv(), "", options, &option_index)) != -1) {
         switch (c) {
         case 0: {
             switch (option_index) {
@@ -77,21 +89,21 @@ int main(int argc, char *argv[]) {
                 seed_percentage = atof(optarg);
             } break;
             default: {
-                puts("getopt returned something weird!");
+                WorkerPrintf("getopt returned something weird!\n");
             } break;
             }
         } break;
         case '?': break;
         default: {
-            puts("getop returned something weird!");
+            WorkerPrintf("getop returned something weird!\n");
         } break;
         }
     }
 
     TSPInstance problem = TSPInstanceInit(tsp_in);
     if (!TSPInstanceOkay(&problem)) {
-        puts("Couldn't load TSP problem instance!");
-        return EXIT_FAILURE;
+        WorkerPrintf("Couldn't load TSP problem instance!\n");
+        exit(EXIT_FAILURE);
     }
 
     u32 *tour = SolveGA(
@@ -109,9 +121,9 @@ int main(int argc, char *argv[]) {
         }
     );
     if (!tour) {
-        puts("Couldn't get a tour from GA!");
+        WorkerPrintf("Couldn't get a tour from GA!\n");
         TSPInstanceFree(&problem);
-        return EXIT_FAILURE;
+        exit(EXIT_FAILURE);
     }
     if (tour_out) {
         TourWriteToFile(tour, problem.n_cities, "TSP tour", "Found by GA", tour_out);
@@ -119,5 +131,8 @@ int main(int argc, char *argv[]) {
 
     TourFree(tour);
     TSPInstanceFree(&problem);
-    return EXIT_SUCCESS;
+}
+
+void SlaveWork(void) {
+    WorkerPrintf("Hello!\n");
 }
