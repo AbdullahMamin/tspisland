@@ -10,3 +10,4 @@
 * [ ] Different way to calculate fitness
 * [ ] Seeds
 * [ ] Clean up solvers.h and solvers.c code
+* [ ] Better errors
