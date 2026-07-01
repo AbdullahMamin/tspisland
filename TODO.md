@@ -6,3 +6,4 @@
 * [ ] Better selection
 * [ ] Different way to calculate fitness
 * [ ] Seeds
+* [ ] Clean up solvers.h and solvers.c code
