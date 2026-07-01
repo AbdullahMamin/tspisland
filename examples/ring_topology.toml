@@ -1,0 +1,25 @@
+[global]
+method = "island"
+epoch_length = 100
+max_generations = 1000
+
+[[island]]
+src_islands = [2]
+dst_islands = [1]
+population_size = 100
+mutation_rate = 0.01
+max_mutation_strength = 0.05
+
+[[island]]
+src_islands = [0]
+dst_islands = [2]
+population_size = 100
+mutation_rate = 0.01
+max_mutation_strength = 0.05
+
+[[island]]
+src_islands = [1]
+dst_islands = [0]
+population_size = 100
+mutation_rate = 0.01
+max_mutation_strength = 0.05
