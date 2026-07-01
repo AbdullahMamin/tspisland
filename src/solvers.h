@@ -7,6 +7,9 @@
 
 #define MAX_CITIES_FOR_EDGE_STATISTICS (10000)
 
+#define MAX_ISLANDS (100)
+#define INVALID_ISLAND (-1)
+
 // Just go from 1 -> 2 -> ... -> n
 u32 *SolveBasic(const TSPInstance *tsp_instance);
 
@@ -41,6 +44,17 @@ typedef struct {
 // TODO: possibly keep track of best tours over generations?
 u32 *SolveGA(GAParameters parameters);
 
-// TODO: Island based method
+// The island migration method
+typedef struct {
+    u32 epoch_length; // how many generations to run before migration
+    f64 migration_rate; // what percent of the population to migrate
+
+    // TODO: maybe more than just two islands?
+    // MPI ranks of connected islands
+    int dst_rank;
+    int src_rank;
+} IslandParameters;
+
+u32 *SolveIsland(GAParameters ga_parameters, IslandParameters island_parameters);
 
 #endif // SOLVERS_H

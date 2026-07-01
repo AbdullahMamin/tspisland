@@ -264,9 +264,9 @@ static bool GASolverOkay(const GASolver *solver) {
 }
 
 static void GASolverEvolve(GASolver *solver, u32 n_generations) {
-    WorkerPrintf("Evolving for %u generations:\n", n_generations);
+    WorkerPrintf("Evolving for %u generations...\n", n_generations);
     for (u32 i = 0; i < n_generations; i++) {
-        WorkerPrintf("%u/%u............\r", i + 1, n_generations);
+        WorkerPrintf("At generation: %u/%u\n", i + 1, n_generations);
 
         // TODO: better selection
         ShuffleArrayU32(
@@ -316,8 +316,6 @@ static void GASolverEvolve(GASolver *solver, u32 n_generations) {
 
         GASolverDoLogs(solver);
     }
-
-    WorkerPrintf("\n");
 }
 
 static u32 *GASolverBestIndividual(GASolver *solver) {
@@ -515,3 +513,60 @@ static void GASolverDoLogs(GASolver *solver) {
     }
 }
 // ====================
+
+// ==== ISLAND SOLVER ====
+typedef struct {
+    IslandParameters parameters;
+    GASolver ga;
+} IslandSolver;
+
+static IslandSolver IslandSolverInit(GAParameters ga_parameters, IslandParameters island_parameters);
+static void IslandSolverFree(IslandSolver *solver);
+static bool IslandSolverOkay(const IslandSolver *solver);
+
+u32 *SolveIsland(GAParameters ga_parameters, IslandParameters island_parameters) {
+    IslandSolver solver = IslandSolverInit(ga_parameters, island_parameters);
+    if (!IslandSolverOkay(&solver)) {
+        return NULL;
+    }
+    u32 *best_tour = TourInit(ga_parameters.problem->n_cities);
+    if (!best_tour) {
+        WorkerPrintf("Couldn't allocate tour buffer!\n");
+        IslandSolverFree(&solver);
+        return NULL;
+    }
+
+    // GASolverDoLogHeaders(&solver);
+    // GASolverDoLogs(&solver);
+    // GASolverEvolve(&solver, parameters.max_generations);
+    // TourCopy(best_tour, GASolverBestIndividual(&solver), parameters.problem->n_cities);
+
+    IslandSolverFree(&solver);
+    return best_tour;
+}
+
+static IslandSolver IslandSolverInit(GAParameters ga_parameters, IslandParameters island_parameters) {
+    // TODO: check island_parameters
+    if (island_parameters.epoch_length > ga_parameters.max_generations) {
+        WorkerPrintf("Migration epoch longer than max generations of island!\n");
+        exit(EXIT_FAILURE);
+    }
+    if (island_parameters.migration_rate < 0.0 || island_parameters.migration_rate > 1.0) {
+        WorkerPrintf("Migration rate must be between 0.0 and 1.0!\n");
+        exit(EXIT_FAILURE);
+    }
+    return (IslandSolver){
+        .parameters = island_parameters,
+        .ga = GASolverInit(ga_parameters)
+    };
+}
+
+static void IslandSolverFree(IslandSolver *solver) {
+    assert(IslandSolverOkay(solver));
+    GASolverFree(&solver->ga);
+}
+
+static bool IslandSolverOkay(const IslandSolver *solver) {
+    return GASolverOkay(&solver->ga);
+}
+// =======================
