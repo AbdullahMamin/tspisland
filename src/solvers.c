@@ -478,7 +478,18 @@ static void GASolverDoLogs(GASolver *solver) {
    }
 
     if (solver->edge_heat_file) {
-        // TODO
+        for (u32 from = 0; from < solver->parameters.problem->n_cities - 1; from++) {
+            for (u32 to = from + 1; to < solver->parameters.problem->n_cities; to++) {
+                u32 edge_idx = from*(from + 1)/2 + (to - from - 1);
+                u32 edge_count = CounterCount(&solver->edge_counter, edge_idx);
+                if (edge_count == 0) {
+                    continue;
+                }
+                f64 p = (f64)edge_count/(f64)solver->parameters.population_size;
+                fprintf(solver->edge_heat_file, "%u\n%u\n%f\n", from, to, p);
+            }
+        }
+        fprintf(solver->edge_heat_file, "---\n");
     }
 }
 // ====================
