@@ -35,3 +35,26 @@ char **GetArgv(void) {
 int GetWorkerCount(void) {
     return g_n_procs;
 }
+
+void WorkerSendU32(u32 *array, size n_elements, int dst_rank) {
+    MPI_Send(
+        array,
+        n_elements,
+        MPI_UNSIGNED,
+        dst_rank,
+        0,
+        MPI_COMM_WORLD
+    );
+}
+
+void WorkerReceiveU32(u32 *array, size n_elements, int src_rank) {
+    MPI_Recv(
+        array,
+        n_elements,
+        MPI_UNSIGNED,
+        src_rank,
+        0,
+        MPI_COMM_WORLD,
+        MPI_STATUS_IGNORE
+    );
+}

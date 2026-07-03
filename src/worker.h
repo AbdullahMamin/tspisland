@@ -3,6 +3,7 @@
 #define WORKER_H
 #include <mpi.h>
 #include <stdio.h>
+#include "types.h"
 
 #define ANY_RANK (-1)
 #define MASTER_RANK (0)
@@ -30,5 +31,11 @@ char **GetArgv(void);
 
 // Returns n_procs
 int GetWorkerCount(void);
+
+// Send u32 array to another worker
+void WorkerSendU32(u32 *array, size n_elements, int dst_rank);
+
+// Receive u32 array from another worker
+void WorkerReceiveU32(u32 *array, size n_elements, int src_rank);
 
 #endif // WORKER_H
