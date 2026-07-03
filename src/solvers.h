@@ -7,8 +7,6 @@
 
 #define MAX_CITIES_FOR_EDGE_STATISTICS (10000)
 
-#define MAX_ISLANDS (100)
-
 // Just go from 1 -> 2 -> ... -> n
 u32 *SolveBasic(const TSPInstance *tsp_instance);
 
@@ -48,10 +46,11 @@ typedef struct {
     u32 epoch_length; // how many generations to run before migration
     f64 migration_rate; // what percent of the population to migrate
 
-    // TODO: maybe more than just two islands?
     // MPI ranks of connected islands
-    int dst_rank;
-    int src_rank;
+    int n_dst;
+    int n_src;
+    int dst_ranks[MAX_WORKERS];
+    int src_ranks[MAX_WORKERS];
 } IslandParameters;
 
 u32 *SolveIsland(GAParameters ga_parameters, IslandParameters island_parameters);

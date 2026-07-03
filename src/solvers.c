@@ -587,13 +587,14 @@ static bool IslandSolverOkay(const IslandSolver *solver) {
 static void IslandSolverDoMigrations(IslandSolver *solver) {
     // TODO: migration policies...
     assert(IslandSolverOkay(solver));
-    i32 dst_rank = solver->parameters.dst_rank;
-    i32 src_rank = solver->parameters.src_rank;
     u32 migration_amount = solver->parameters.migration_rate*solver->ga.parameters.population_size;
     u32 n_cities = solver->ga.parameters.problem->n_cities;
     u32 *array = solver->ga.population.tours;
-    if (dst_rank != NONE_RANK) {
-        // TODO: send
+    for (int i = 0; i < solver->parameters.n_dst; i++) {
+        int dst_rank = solver->parameters.dst_ranks[i];
+        if (dst_rank == NONE_RANK) {
+            break;
+        }
         WorkerPrintf(ANY_RANK, "Sending individuals to %d\n", dst_rank);
         WorkerISendU32(
             array,
@@ -601,8 +602,11 @@ static void IslandSolverDoMigrations(IslandSolver *solver) {
             dst_rank
         );
     }
-    if (src_rank != NONE_RANK) {
-        // TODO: receive
+    for (int i = 0; i < solver->parameters.n_src; i++) {
+        int src_rank = solver->parameters.src_ranks[i];
+        if (src_rank == NONE_RANK) {
+            break;
+        }
         WorkerPrintf(ANY_RANK, "Receiving individuals from %d\n", src_rank);
         WorkerReceiveU32(
             array,

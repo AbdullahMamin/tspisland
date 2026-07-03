@@ -210,8 +210,10 @@ int main(int argc, char *argv[]) {
 
             island_parameters.epoch_length = epoch_length.u.int64;
             island_parameters.migration_rate = migration_rate.u.fp64;
-            island_parameters.dst_rank = no_dst ? NONE_RANK : dst_island.u.int64;
-            island_parameters.src_rank = no_src ? NONE_RANK : src_island.u.int64;
+            island_parameters.dst_ranks[0] = no_dst ? NONE_RANK : dst_island.u.int64;
+            island_parameters.src_ranks[0] = no_src ? NONE_RANK : src_island.u.int64;
+            island_parameters.n_src = 1;
+            island_parameters.n_dst = 1;
 
             u32 *tour = SolveIsland(ga_parameters, island_parameters);
             // TourWriteToFile(tour, problem.n_cities, "Tour", "Found by island method", tour_out);
