@@ -37,6 +37,7 @@ int GetWorkerCount(void) {
 }
 
 void WorkerSendU32(u32 *array, size n_elements, int dst_rank) {
+    assert(0 <= dst_rank && dst_rank < g_n_procs);
     MPI_Send(
         array,
         n_elements,
@@ -48,6 +49,7 @@ void WorkerSendU32(u32 *array, size n_elements, int dst_rank) {
 }
 
 void WorkerReceiveU32(u32 *array, size n_elements, int src_rank) {
+    assert(0 <= src_rank && src_rank < g_n_procs);
     MPI_Recv(
         array,
         n_elements,

@@ -3,15 +3,17 @@
 #define WORKER_H
 #include <mpi.h>
 #include <stdio.h>
+#include <assert.h>
 #include "types.h"
 
+#define NONE_RANK (-2)
 #define ANY_RANK (-1)
 #define MASTER_RANK (0)
 
 #define WorkerDo(rank, ...) {if ((rank) == ANY_RANK || WorkerRank() == (rank)) {__VA_ARGS__}}
 #define MasterDo(...) WorkerDo(MASTER_RANK, __VA_ARGS__)
 
-#define WorkerPrintf(rank, ...) {printf("[%d]: ", WorkerRank()); printf(__VA_ARGS__);}
+#define WorkerPrintf(rank, ...) WorkerDo((rank), printf("[%d]: ", (rank)); printf(__VA_ARGS__);)
 #define MasterPrintf(...) WorkerPrintf(MASTER_RANK, __VA_ARGS__)
 
 // Initializes MPI and worker globals
