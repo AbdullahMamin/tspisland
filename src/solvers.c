@@ -13,7 +13,10 @@ u32 *SolveBasic(const TSPInstance *tsp_instance) {
 }
 
 u32 *SolveGreedy(const TSPInstance *tsp_instance, u32 starting_city) {
-    assert(TSPInstanceOkay(tsp_instance) && starting_city < tsp_instance->n_cities);
+    assert(TSPInstanceOkay(tsp_instance));
+    if (starting_city >= tsp_instance->n_cities) {
+        starting_city = 0;
+    }
     u32 *tour = TourInit(tsp_instance->n_cities);
     if (!tour) {
         return NULL;
@@ -24,7 +27,7 @@ u32 *SolveGreedy(const TSPInstance *tsp_instance, u32 starting_city) {
     tour[0] = starting_city;
     TableInsert(&visited_table, tour[0]);
     for (u32 i = 1; i < tsp_instance->n_cities; i++) {
-        WorkerPrintf("Greedy at iteration %u...\n", i);
+        WorkerPrintf(ANY_RANK, "Greedy at iteration %u...\n", i);
         u32 closest_neighbour = UINT32_MAX;
         f64 shortest_distance = INFINITY;
         for (u32 j = 0; j < tsp_instance->n_cities; j++) {
@@ -86,7 +89,7 @@ u32 *SolveGA(GAParameters parameters) {
     }
     u32 *best_tour = TourInit(parameters.problem->n_cities);
     if (!best_tour) {
-        WorkerPrintf("Couldn't allocate tour buffer!\n");
+        WorkerPrintf(ANY_RANK, "Couldn't allocate tour buffer!\n");
         GASolverFree(&solver);
         return NULL;
     }
@@ -108,7 +111,7 @@ static GASolver GASolverInit(GAParameters parameters) {
     };
 
     if (!TSPInstanceOkay(parameters.problem)) {
-        WorkerPrintf("Didn't provide valid TSP instance!\n");
+        WorkerPrintf(ANY_RANK, "Didn't provide valid TSP instance!\n");
         return solver;
     }
 
@@ -117,6 +120,7 @@ static GASolver GASolverInit(GAParameters parameters) {
         parameters.problem->n_cities > MAX_CITIES_FOR_EDGE_STATISTICS
     ) {
         WorkerPrintf(
+            ANY_RANK,
             "Can't log edge statistics when problem size is greater than %u!\n",
             MAX_CITIES_FOR_EDGE_STATISTICS
         );
@@ -124,43 +128,43 @@ static GASolver GASolverInit(GAParameters parameters) {
     }
 
     if (parameters.population_size <= 1) {
-        WorkerPrintf("Population must be at least 2!\n");
+        WorkerPrintf(ANY_RANK, "Population must be at least 2!\n");
         return solver;
     }
 
     if (parameters.mutation_rate < 0.0 || parameters.mutation_rate > 1.0) {
-        WorkerPrintf("Mutation rate must be between 0.0 and 1.0!\n");
+        WorkerPrintf(ANY_RANK, "Mutation rate must be between 0.0 and 1.0!\n");
         return solver;
     }
 
     if (parameters.max_mutation_strength < 0.0 || parameters.max_mutation_strength > 1.0) {
-        WorkerPrintf("Max mutation strength must be between 0.0 and 1.0!\n");
+        WorkerPrintf(ANY_RANK, "Max mutation strength must be between 0.0 and 1.0!\n");
         return solver;
     }
 
     if (parameters.seed_in && (parameters.seed_percentage < 0.0 || parameters.seed_percentage > 1.0)) {
-        WorkerPrintf("Seed percentage needs to be between 0.0 and 1.0!\n");
+        WorkerPrintf(ANY_RANK, "Seed percentage needs to be between 0.0 and 1.0!\n");
         return solver;
     }
 
     // + 1 for children that are created (TODO: use a whole different buffer for children)
     solver.population = TourArrayInit(parameters.problem, parameters.population_size + 1);
     if (!TourArrayOkay(&solver.population)) {
-        WorkerPrintf("Couldn't allocate population!\n");
+        WorkerPrintf(ANY_RANK, "Couldn't allocate population!\n");
         return solver;
     }
 
     // + 1 for children that are created (TODO: use a whole different buffer for children)
     solver.population_fitness = calloc(parameters.population_size + 1, sizeof(*solver.population_fitness));
     if (!solver.population_fitness) {
-        WorkerPrintf("Couldn't allocate population fitness buffer!\n");
+        WorkerPrintf(ANY_RANK, "Couldn't allocate population fitness buffer!\n");
         TourArrayFree(&solver.population);
         return solver;
     }
 
     solver.r = calloc(parameters.population_size, sizeof(*solver.r));
     if (!solver.r) {
-        WorkerPrintf("Couldn't allocate population shuffle buffer!\n");
+        WorkerPrintf(ANY_RANK, "Couldn't allocate population shuffle buffer!\n");
         free(solver.population_fitness);
         solver.population_fitness = NULL;
         TourArrayFree(&solver.population);
@@ -172,7 +176,7 @@ static GASolver GASolverInit(GAParameters parameters) {
 
     solver.child_city_table = TableInit(parameters.problem->n_cities);
     if (!TableOkay(&solver.child_city_table)) {
-        WorkerPrintf("Couldn't allocate child city table!\n");
+        WorkerPrintf(ANY_RANK, "Couldn't allocate child city table!\n");
         free(solver.r);
         solver.r = NULL;
         free(solver.population_fitness);
@@ -186,7 +190,7 @@ static GASolver GASolverInit(GAParameters parameters) {
             parameters.problem->n_cities*(parameters.problem->n_cities - 1)/2
         );
         if (!CounterOkay(&solver.edge_counter)) {
-            WorkerPrintf("Couldn't allocate edge counter!\n");
+            WorkerPrintf(ANY_RANK, "Couldn't allocate edge counter!\n");
             TableFree(&solver.child_city_table);
             free(solver.r);
             solver.r = NULL;
@@ -205,10 +209,10 @@ static GASolver GASolverInit(GAParameters parameters) {
         // TODO: fix all this ugly nesting
         u32 *seed_tour = TourInit(parameters.problem->n_cities);
         if (!TourOkay(seed_tour)) {
-            WorkerPrintf("Couldn't allocate seed tour!\n");
+            WorkerPrintf(ANY_RANK, "Couldn't allocate seed tour!\n");
         } else {
             if (!TourReadFromFile(seed_tour, parameters.problem->n_cities, parameters.seed_in)) {
-                WorkerPrintf("Couldn't allocate seed tour!\n");
+                WorkerPrintf(ANY_RANK, "Couldn't allocate seed tour!\n");
             } else {
                 u32 n_seeds = parameters.seed_percentage*parameters.population_size;
                 for (u32 i = 0; i < n_seeds; i++) {
@@ -264,9 +268,9 @@ static bool GASolverOkay(const GASolver *solver) {
 }
 
 static void GASolverEvolve(GASolver *solver, u32 n_generations) {
-    WorkerPrintf("Evolving for %u generations...\n", n_generations);
+    WorkerPrintf(ANY_RANK, "Evolving for %u generations...\n", n_generations);
     for (u32 i = 0; i < n_generations; i++) {
-        WorkerPrintf("At generation: %u/%u\n", i + 1, n_generations);
+        WorkerPrintf(ANY_RANK, "At generation: %u/%u\n", i + 1, n_generations);
 
         // TODO: better selection
         ShuffleArrayU32(
@@ -532,7 +536,7 @@ u32 *SolveIsland(GAParameters ga_parameters, IslandParameters island_parameters)
     }
     u32 *best_tour = TourInit(ga_parameters.problem->n_cities);
     if (!best_tour) {
-        WorkerPrintf("Couldn't allocate tour buffer!\n");
+        WorkerPrintf(ANY_RANK, "Couldn't allocate tour buffer!\n");
         IslandSolverFree(&solver);
         return NULL;
     }
@@ -557,11 +561,11 @@ u32 *SolveIsland(GAParameters ga_parameters, IslandParameters island_parameters)
 static IslandSolver IslandSolverInit(GAParameters ga_parameters, IslandParameters island_parameters) {
     // TODO: check island_parameters
     if (island_parameters.epoch_length >= ga_parameters.max_generations) {
-        WorkerPrintf("Migration epoch must be less than max generations of island!\n");
+        WorkerPrintf(ANY_RANK, "Migration epoch must be less than max generations of island!\n");
         exit(EXIT_FAILURE);
     }
     if (island_parameters.migration_rate < 0.0 || island_parameters.migration_rate > 1.0) {
-        WorkerPrintf("Migration rate must be between 0.0 and 1.0!\n");
+        WorkerPrintf(ANY_RANK, "Migration rate must be between 0.0 and 1.0!\n");
         exit(EXIT_FAILURE);
     }
     return (IslandSolver){
