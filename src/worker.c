@@ -31,9 +31,7 @@ void InitWorkers(int *argc, char ***argv) {
 
 void DeinitWorkers(void) {
     // Make sure all pending sends are finished
-    for (int i = 0; i < g_n_procs; i++) {
-        MPI_Wait(&g_isend_requests[i], MPI_STATUS_IGNORE);
-    }
+    WorkerWaitAllRequests();
     WorkerPrintf(ANY_RANK, "Goodbye!\n");
     MPI_Finalize();
 }
@@ -92,6 +90,12 @@ void WorkerReceiveU32(u32 *array, size n_elements, int src_rank) {
         MPI_COMM_WORLD,
         MPI_STATUS_IGNORE
     );
+}
+
+void WorkerWaitAllRequests(void) {
+    for (int i = 0; i < g_n_procs; i++) {
+        MPI_Wait(&g_isend_requests[i], MPI_STATUS_IGNORE);
+    }
 }
 
 const int *AllWorkers(void) {

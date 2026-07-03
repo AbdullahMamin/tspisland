@@ -49,6 +49,9 @@ void WorkerISendU32(u32 *array, size n_elements, int dst_rank);
 // Receive u32 array from another worker
 void WorkerReceiveU32(u32 *array, size n_elements, int src_rank);
 
+// Waits for all pending requests to finish.
+void WorkerWaitAllRequests(void);
+
 // Returns array of all worker ranks
 const int *AllWorkers(void);
 
