@@ -35,3 +35,4 @@ You should have received a copy of the GNU General Public License along with thi
 ## ATTRIBUTIONS & ACKNOWLEDGMENTS
 
 [TSPLIB data](https://github.com/mastqe/tsplib)
+[TOML parser](https://github.com/cktan/tomlc17)
