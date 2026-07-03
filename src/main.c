@@ -3,6 +3,7 @@
 #include <getopt.h>
 #include "solvers.h"
 #include "worker.h"
+#include "tomlc17.h"
 
 #define DEFAULT_POPULATION_SIZE (100)
 #define DEFAULT_MAX_GENERATIONS (100)
@@ -12,129 +13,115 @@
 #define DEFAULT_EPOCH_LENGTH (10)
 #define DEFAULT_MIGRATION_RATE (0.1)
 
-void MasterWork(void);
-void SlaveWork(void);
-
 int main(int argc, char *argv[]) {
     InitWorkers(&argc, &argv);
     SeedRNG();
-    MasterDo(MasterWork);
-    SlaveDo(SlaveWork);
-    DeinitWorkers();
-    return EXIT_SUCCESS;
-}
 
-void MasterWork(void) {
-    WorkerPrintf("Hello from master work!\n");
+    char *config_in = NULL;
     char *tsp_in = NULL;
     char *tour_out = NULL;
-    char *summary_out = NULL;
-    char *entropy_out = NULL;
-    char *heat_out = NULL;
-    char *seed_in = NULL;
-    u32 population_size = DEFAULT_POPULATION_SIZE;
-    u32 max_generations = DEFAULT_MAX_GENERATIONS;
-    f64 mutation_rate = DEFAULT_MUTATION_RATE;
-    f64 max_mutation_strength = DEFAULT_MAX_MUTATION_STRENGTH;
-    f64 seed_percentage = DEFAULT_SEED_PERCENTAGE;
     struct option options[] = {
+        {"config_in", required_argument, NULL, 0},
         {"tsp_in", required_argument, NULL, 0},
-        {"tour_out", required_argument, NULL, 0},
-        {"summary_out", required_argument, NULL, 0},
-        {"entropy_out", required_argument, NULL, 0},
-        {"heat_out", required_argument, NULL, 0},
-        {"seed_in", required_argument, NULL, 0},
-        {"population_size", required_argument, NULL, 0},
-        {"max_generations", required_argument, NULL, 0},
-        {"mutation_rate", required_argument, NULL, 0},
-        {"max_mutation_strength", required_argument, NULL, 0},
-        {"seed_percentage", required_argument, NULL, 0}
+        {"tour_out", required_argument, NULL, 0}
     };
 
     int c;
     int option_index;
     while ((c = getopt_long_only(GetArgc(), GetArgv(), "", options, &option_index)) != -1) {
-        switch (c) {
-        case 0: {
+        if (c == 0) {
             switch (option_index) {
             case 0: {
-                tsp_in = optarg;
+                config_in = optarg;
             } break;
             case 1: {
-                tour_out = optarg;
+                tsp_in = optarg;
             } break;
             case 2: {
-                summary_out = optarg;
-            } break;
-            case 3: {
-                entropy_out = optarg;
-            } break;
-            case 4: {
-                heat_out = optarg;
-            } break;
-            case 5: {
-                seed_in = optarg;
-            } break;
-            case 6: {
-                population_size = atoll(optarg);
-            } break;
-            case 7: {
-                max_generations = atoll(optarg);
-            } break;
-            case 8: {
-                mutation_rate = atof(optarg);
-            } break;
-            case 9: {
-                max_mutation_strength = atof(optarg);
-            } break;
-            case 10: {
-                seed_percentage = atof(optarg);
+                tour_out = optarg;
             } break;
             default: {
-                WorkerPrintf("getopt returned something weird!\n");
+                MasterPrintf("getopt returned something weird!\n");
             } break;
             }
-        } break;
-        case '?': break;
-        default: {
-            WorkerPrintf("getop returned something weird!\n");
-        } break;
+        } else if (c != '?') {
+            MasterPrintf("getop returned something weird!\n");
         }
+    }
+
+    if (!config_in || !tsp_in || !tour_out) {
+        MasterPrintf("usage: mpirun -np n_procs tspisland --config_in=config_file --tsp_in=tsp_file --tour_out=tour_file\n");
+        return EXIT_FAILURE;
+    }
+
+    toml_result_t config_toml = toml_parse_file_ex(config_in);
+    if (!config_toml.ok) {
+        MasterPrintf("Error reading toml config!\n");
+        return EXIT_FAILURE;
     }
 
     TSPInstance problem = TSPInstanceInit(tsp_in);
     if (!TSPInstanceOkay(&problem)) {
-        WorkerPrintf("Couldn't load TSP problem instance!\n");
-        exit(EXIT_FAILURE);
+        MasterPrintf("Couldn't read TSP file!\n");
+        return EXIT_FAILURE;
     }
 
-    u32 *tour = SolveGA(
-        (GAParameters){
-            .summary_out = summary_out,
-            .edge_entropy_out = entropy_out,
-            .edge_heat_out = heat_out,
-            .seed_in = seed_in,
-            .problem = &problem,
-            .population_size = population_size,
-            .max_generations = max_generations,
-            .mutation_rate = mutation_rate,
-            .max_mutation_strength = max_mutation_strength,
-            .seed_percentage = seed_percentage
+    toml_datum_t method = toml_seek(config_toml.toptab, "global.method");
+    if (method.type != TOML_STRING) {
+        MasterPrintf("Invalid or no method provided in config!\n");
+        return EXIT_FAILURE;
+    }
+
+    if (strcmp(method.u.s, "greedy") == 0) {
+        toml_datum_t starting_city = toml_seek(config_toml.toptab, "global.starting_city");
+        if (starting_city.type != TOML_INT64) {
+            MasterPrintf("Starting city not entered!\n");
         }
-    );
-    if (!tour) {
-        WorkerPrintf("Couldn't get a tour from GA!\n");
-        TSPInstanceFree(&problem);
-        exit(EXIT_FAILURE);
-    }
-    if (tour_out) {
-        TourWriteToFile(tour, problem.n_cities, "TSP tour", "Found by GA", tour_out);
+        MasterDo(
+            u32 *tour = SolveGreedy(&problem, starting_city.u.int64);
+            TourWriteToFile(tour, problem.n_cities, "Tour", "Found by greedy method", tour_out);
+            TourFree(tour);
+        );
+    } else if (strcmp(method.u.s, "genetic") == 0) {
+        MasterDo(
+            GAParameters ga_parameters = {0};
+            ga_parameters.problem = &problem;
+
+            toml_datum_t mutation_rate = toml_seek(config_toml.toptab, "global.mutation_rate");
+            if (mutation_rate.type != TOML_FP64) {
+                MasterPrintf("Mutation rate not entered!\n");
+            }
+            ga_parameters.mutation_rate = mutation_rate.u.fp64;
+
+            toml_datum_t max_mutation_strength = toml_seek(config_toml.toptab, "global.max_mutation_strength");
+            if (max_mutation_strength.type != TOML_FP64) {
+                MasterPrintf("Max mutation strength not entered!\n");
+            }
+            ga_parameters.max_mutation_strength = max_mutation_strength.u.fp64;
+
+            toml_datum_t population_size = toml_seek(config_toml.toptab, "global.population_size");
+            if (population_size.type != TOML_INT64) {
+                MasterPrintf("Population size not enetered!\n");
+            }
+            ga_parameters.population_size = population_size.u.int64;
+
+            toml_datum_t max_generations = toml_seek(config_toml.toptab, "global.max_generations");
+            if (max_generations.type != TOML_INT64) {
+                MasterPrintf("Max generations not entered!\n");
+            }
+            ga_parameters.max_generations = max_generations.u.int64;
+
+            u32 *tour = SolveGA(ga_parameters);
+            TourWriteToFile(tour, problem.n_cities, "Tour", "Found by GA method", tour_out);
+            TourFree(tour);
+        );
+    } else {
+        MasterPrintf("Invalid method provided in config!\n");
     }
 
-    TourFree(tour);
+
     TSPInstanceFree(&problem);
-}
-
-void SlaveWork(void) {
-    WorkerPrintf("Hello!\n");
+    toml_free(config_toml);
+    DeinitWorkers();
+    return EXIT_SUCCESS;
 }
