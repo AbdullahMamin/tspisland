@@ -270,7 +270,6 @@ static bool GASolverOkay(const GASolver *solver) {
 static void GASolverEvolve(GASolver *solver, u32 n_generations) {
     WorkerPrintf(ANY_RANK, "Evolving for %u generations...\n", n_generations);
     for (u32 i = 0; i < n_generations; i++) {
-        WorkerPrintf(ANY_RANK, "At generation: %u/%u\n", i + 1, n_generations);
 
         // TODO: better selection
         ShuffleArrayU32(
@@ -320,6 +319,7 @@ static void GASolverEvolve(GASolver *solver, u32 n_generations) {
 
         GASolverDoLogs(solver);
     }
+    WorkerPrintf(ANY_RANK, "Finished evolution.\n");
 }
 
 static u32 *GASolverBestIndividual(GASolver *solver) {
@@ -541,6 +541,7 @@ u32 *SolveIsland(GAParameters ga_parameters, IslandParameters island_parameters)
         return NULL;
     }
 
+    GASolverDoLogHeaders(&solver.ga);
     GASolverDoLogs(&solver.ga);
     u32 generations_left = ga_parameters.max_generations;
     while (generations_left > 0) {
@@ -555,6 +556,9 @@ u32 *SolveIsland(GAParameters ga_parameters, IslandParameters island_parameters)
         }
     }
     TourCopy(best_tour, GASolverBestIndividual(&solver.ga), ga_parameters.problem->n_cities);
+
+    // TODO: make sure this actually fixes that segfault near the end of runs
+    WorkerWaitAllRequests();
 
     IslandSolverFree(&solver);
     return best_tour;
