@@ -3,27 +3,27 @@
 #include <getopt.h>
 #include "solvers.h"
 #include "worker.h"
+#include "str.h"
 #include "tomlc17.h"
-
-#define DEFAULT_POPULATION_SIZE (100)
-#define DEFAULT_MAX_GENERATIONS (100)
-#define DEFAULT_MUTATION_RATE (0.01)
-#define DEFAULT_MAX_MUTATION_STRENGTH (0.5)
-#define DEFAULT_SEED_PERCENTAGE (0.1)
-#define DEFAULT_EPOCH_LENGTH (10)
-#define DEFAULT_MIGRATION_RATE (0.1)
 
 int main(int argc, char *argv[]) {
     InitWorkers(&argc, &argv);
     SeedRNG();
+    // 1MB buffer for strings
+    if (!StrInit(10*1024*1024)) {
+        WorkerPrintf(ANY_RANK, "Couldn't allocate str arena!\n");
+        return EXIT_FAILURE;
+    }
 
     char *config_in = NULL;
     char *tsp_in = NULL;
-    char *tour_out = NULL;
+    char *out_dir = NULL;
+    char *name = NULL;
     struct option options[] = {
         {"config_in", required_argument, NULL, 0},
         {"tsp_in", required_argument, NULL, 0},
-        {"tour_out", required_argument, NULL, 0}
+        {"out_dir", required_argument, NULL, 0},
+        {"name", required_argument, NULL, 0}
     };
 
     int c;
@@ -38,7 +38,10 @@ int main(int argc, char *argv[]) {
                 tsp_in = optarg;
             } break;
             case 2: {
-                tour_out = optarg;
+                out_dir = optarg;
+            } break;
+            case 3: {
+                name = optarg;
             } break;
             default: {
                 MasterPrintf("getopt returned something weird!\n");
@@ -49,8 +52,8 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if (!config_in || !tsp_in || !tour_out) {
-        MasterPrintf("usage: mpirun -np n_procs tspisland --config_in=config_file --tsp_in=tsp_file --tour_out=tour_file\n");
+    if (!config_in || !tsp_in || !out_dir || !name) {
+        MasterPrintf("usage: mpirun -np n_procs tspisland --config_in=config_file --tsp_in=tsp_file --out_dir=out_directory --name=run_name\n");
         return EXIT_FAILURE;
     }
 
@@ -80,7 +83,7 @@ int main(int argc, char *argv[]) {
         }
         MasterDo(
             u32 *tour = SolveGreedy(&problem, starting_city.u.int64);
-            TourWriteToFile(tour, problem.n_cities, "Tour", "Found by greedy method", tour_out);
+            TourWriteToFile(tour, problem.n_cities, "Tour", "Found by greedy method", StrConcatenate(4, out_dir, "/greedy_", name, ".tour"));
             TourFree(tour);
         );
     } else if (strcmp(method.u.s, "genetic") == 0) {
@@ -117,7 +120,7 @@ int main(int argc, char *argv[]) {
             ga_parameters.max_generations = max_generations.u.int64;
 
             u32 *tour = SolveGA(ga_parameters);
-            TourWriteToFile(tour, problem.n_cities, "Tour", "Found by GA method", tour_out);
+            TourWriteToFile(tour, problem.n_cities, "Tour", "Found by GA method", StrConcatenate(4, out_dir, "/genetic_", name, ".tour"));
             TourFree(tour);
         );
     } else if (strcmp(method.u.s, "island") == 0) {
@@ -170,14 +173,14 @@ int main(int argc, char *argv[]) {
             }
 
             bool no_src = false;
-            toml_datum_t src_island = toml_seek(island, "src_island");
-            if (src_island.type != TOML_INT64) {
+            toml_datum_t src_islands = toml_seek(island, "src_islands");
+            if (src_islands.type != TOML_ARRAY) {
                 no_src = true;
             }
 
             bool no_dst = false;
-            toml_datum_t dst_island = toml_seek(island, "dst_island");
-            if (dst_island.type != TOML_INT64) {
+            toml_datum_t dst_islands = toml_seek(island, "dst_islands");
+            if (dst_islands.type != TOML_ARRAY) {
                 no_dst = true;
             }
 
@@ -193,13 +196,13 @@ int main(int argc, char *argv[]) {
                 return EXIT_FAILURE;
             }
 
-            if (!no_src && (src_island.u.int64 < 0 || src_island.u.int64 >= n_islands)) {
-                WorkerPrintf(ANY_RANK, "src island out of range!\n");
+            if (!no_src && (src_islands.u.arr.size >= n_islands)) {
+                WorkerPrintf(ANY_RANK, "Too many src islands!\n");
                 return EXIT_FAILURE;
             }
 
-            if (!no_dst && (dst_island.u.int64 < 0 || dst_island.u.int64 >= n_islands)) {
-                WorkerPrintf(ANY_RANK, "dst island out of range!\n");
+            if (!no_dst && (dst_islands.u.arr.size >= n_islands)) {
+                WorkerPrintf(ANY_RANK, "Too many dst islands!\n");
                 return EXIT_FAILURE;
             }
 
@@ -208,15 +211,45 @@ int main(int argc, char *argv[]) {
             ga_parameters.mutation_rate = mutation_rate.u.fp64;
             ga_parameters.max_mutation_strength = max_mutation_strength.u.fp64;
 
+            // TODO: correct src_islands and dst_islands
+            island_parameters.n_src = no_src ? 0 : src_islands.u.arr.size;
+            island_parameters.n_dst = no_dst ? 0 : dst_islands.u.arr.size;
             island_parameters.epoch_length = epoch_length.u.int64;
             island_parameters.migration_rate = migration_rate.u.fp64;
-            island_parameters.dst_ranks[0] = no_dst ? NONE_RANK : dst_island.u.int64;
-            island_parameters.src_ranks[0] = no_src ? NONE_RANK : src_island.u.int64;
-            island_parameters.n_src = 1;
-            island_parameters.n_dst = 1;
+            for (int i = 0; i < src_islands.u.arr.size; i++) {
+                toml_datum_t src = src_islands.u.arr.elem[i];
+                if (src.type != TOML_INT64) {
+                    WorkerPrintf(ANY_RANK, "Invalid island in src islands!\n");
+                    return EXIT_FAILURE;
+                }
+                int src_rank = src.u.int64;
+                if (src_rank < 0 || src_rank >= n_islands || src_rank == WorkerRank()) {
+                    WorkerPrintf(ANY_RANK, "Invalid island in src islands!\n");
+                    return EXIT_FAILURE;
+                }
+                island_parameters.src_ranks[i] = src_rank;
+            }
+            for (int i = 0; i < dst_islands.u.arr.size; i++) {
+                toml_datum_t dst = dst_islands.u.arr.elem[i];
+                if (dst.type != TOML_INT64) {
+                    WorkerPrintf(ANY_RANK, "Invalid island in dst islands!\n");
+                    return EXIT_FAILURE;
+                }
+                int dst_rank = dst.u.int64;
+                if (dst_rank < 0 || dst_rank >= n_islands || dst_rank == WorkerRank()) {
+                    WorkerPrintf(ANY_RANK, "Invalid island in dst islands!\n");
+                    return EXIT_FAILURE;
+                }
+                island_parameters.dst_ranks[i] = dst_rank;
+            }
 
+            char island_id[256];
+            sprintf(island_id, "%d", WorkerRank());
+
+            ga_parameters.summary_out = StrConcatenate(6, out_dir, "/island_", island_id, "_", name, ".summary.csv");
+            ga_parameters.edge_entropy_out = StrConcatenate(6, out_dir, "/island_", island_id, "_", name, ".entropy.csv");
             u32 *tour = SolveIsland(ga_parameters, island_parameters);
-            // TourWriteToFile(tour, problem.n_cities, "Tour", "Found by island method", tour_out);
+            TourWriteToFile(tour, problem.n_cities, "Tour", "Found by island method", StrConcatenate(6, out_dir, "/island_", island_id, "_", name, ".tour"));
             TourFree(tour);
         );
     } else {
@@ -225,6 +258,7 @@ int main(int argc, char *argv[]) {
 
     TSPInstanceFree(&problem);
     toml_free(config_toml);
+    StrDeinit();
     DeinitWorkers();
     return EXIT_SUCCESS;
 }
