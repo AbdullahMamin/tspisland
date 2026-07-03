@@ -1,0 +1,6 @@
+[global]
+method = "genetic"
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+population_size = 1000
+max_generations = 10000

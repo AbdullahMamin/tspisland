@@ -1,0 +1,3 @@
+[global]
+method = "greedy"
+starting_city = 5
