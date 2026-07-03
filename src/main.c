@@ -76,6 +76,7 @@ int main(int argc, char *argv[]) {
         toml_datum_t starting_city = toml_seek(config_toml.toptab, "global.starting_city");
         if (starting_city.type != TOML_INT64) {
             MasterPrintf("Starting city not entered!\n");
+            return EXIT_FAILURE;
         }
         MasterDo(
             u32 *tour = SolveGreedy(&problem, starting_city.u.int64);
@@ -90,24 +91,28 @@ int main(int argc, char *argv[]) {
             toml_datum_t mutation_rate = toml_seek(config_toml.toptab, "global.mutation_rate");
             if (mutation_rate.type != TOML_FP64) {
                 MasterPrintf("Mutation rate not entered!\n");
+                return EXIT_FAILURE;
             }
             ga_parameters.mutation_rate = mutation_rate.u.fp64;
 
             toml_datum_t max_mutation_strength = toml_seek(config_toml.toptab, "global.max_mutation_strength");
             if (max_mutation_strength.type != TOML_FP64) {
                 MasterPrintf("Max mutation strength not entered!\n");
+                return EXIT_FAILURE;
             }
             ga_parameters.max_mutation_strength = max_mutation_strength.u.fp64;
 
             toml_datum_t population_size = toml_seek(config_toml.toptab, "global.population_size");
             if (population_size.type != TOML_INT64) {
                 MasterPrintf("Population size not enetered!\n");
+                return EXIT_FAILURE;
             }
             ga_parameters.population_size = population_size.u.int64;
 
             toml_datum_t max_generations = toml_seek(config_toml.toptab, "global.max_generations");
             if (max_generations.type != TOML_INT64) {
                 MasterPrintf("Max generations not entered!\n");
+                return EXIT_FAILURE;
             }
             ga_parameters.max_generations = max_generations.u.int64;
 
@@ -115,10 +120,106 @@ int main(int argc, char *argv[]) {
             TourWriteToFile(tour, problem.n_cities, "Tour", "Found by GA method", tour_out);
             TourFree(tour);
         );
+    } else if (strcmp(method.u.s, "island") == 0) {
+        toml_datum_t islands = toml_seek(config_toml.toptab, "island");
+        if (islands.type != TOML_ARRAY) {
+            MasterPrintf("Did not provide islands!\n");
+            return EXIT_FAILURE;
+        }
+
+        toml_datum_t population_size = toml_seek(config_toml.toptab, "global.population_size");
+        if (population_size.type != TOML_INT64) {
+            MasterPrintf("Did not provide population size!\n");
+            return EXIT_FAILURE;
+        }
+
+        toml_datum_t max_generations = toml_seek(config_toml.toptab, "global.max_generations");
+        if (max_generations.type != TOML_INT64) {
+            MasterPrintf("Did not provide max generations!\n");
+            return EXIT_FAILURE;
+        }
+
+        toml_datum_t epoch_length = toml_seek(config_toml.toptab, "global.epoch_length");
+        if (epoch_length.type != TOML_INT64) {
+            MasterPrintf("Did not provide epoch length!\n");
+            return EXIT_FAILURE;
+        }
+
+        toml_datum_t migration_rate = toml_seek(config_toml.toptab, "global.migration_rate");
+        if (migration_rate.type != TOML_FP64) {
+            MasterPrintf("Did not provide migration rate!\n");
+            return EXIT_FAILURE;
+        }
+
+        i32 n_islands = islands.u.arr.size;
+        if (n_islands > GetWorkerCount()) {
+            MasterPrintf("Not enough workers for all the islands!\n");
+            return EXIT_FAILURE;
+        }
+
+        WorkersDo(AllWorkers(), n_islands,
+            GAParameters ga_parameters = {0};
+            ga_parameters.problem = &problem;
+
+            IslandParameters island_parameters = {0};
+
+            toml_datum_t island = islands.u.arr.elem[WorkerRank()];
+            if (island.type != TOML_TABLE) {
+                WorkerPrintf(ANY_RANK, "Invalid island!\n");
+                return EXIT_FAILURE;
+            }
+
+            bool no_src = false;
+            toml_datum_t src_island = toml_seek(island, "src_island");
+            if (src_island.type != TOML_INT64) {
+                no_src = true;
+            }
+
+            bool no_dst = false;
+            toml_datum_t dst_island = toml_seek(island, "dst_island");
+            if (dst_island.type != TOML_INT64) {
+                no_dst = true;
+            }
+
+            toml_datum_t mutation_rate = toml_seek(island, "mutation_rate");
+            if (mutation_rate.type != TOML_FP64) {
+                WorkerPrintf(ANY_RANK, "Did not provide mutation rate!\n");
+                return EXIT_FAILURE;
+            }
+
+            toml_datum_t max_mutation_strength = toml_seek(island, "max_mutation_strength");
+            if (max_mutation_strength.type != TOML_FP64) {
+                WorkerPrintf(ANY_RANK, "Did not provide max mutation strength!\n");
+                return EXIT_FAILURE;
+            }
+
+            if (!no_src && (src_island.u.int64 < 0 || src_island.u.int64 >= n_islands)) {
+                WorkerPrintf(ANY_RANK, "src island out of range!\n");
+                return EXIT_FAILURE;
+            }
+
+            if (!no_dst && (dst_island.u.int64 < 0 || dst_island.u.int64 >= n_islands)) {
+                WorkerPrintf(ANY_RANK, "dst island out of range!\n");
+                return EXIT_FAILURE;
+            }
+
+            ga_parameters.population_size = population_size.u.int64;
+            ga_parameters.max_generations = max_generations.u.int64;
+            ga_parameters.mutation_rate = mutation_rate.u.fp64;
+            ga_parameters.max_mutation_strength = max_mutation_strength.u.fp64;
+
+            island_parameters.epoch_length = epoch_length.u.int64;
+            island_parameters.migration_rate = migration_rate.u.fp64;
+            island_parameters.dst_rank = no_dst ? NONE_RANK : dst_island.u.int64;
+            island_parameters.src_rank = no_src ? NONE_RANK : src_island.u.int64;
+
+            u32 *tour = SolveIsland(ga_parameters, island_parameters);
+            // TourWriteToFile(tour, problem.n_cities, "Tour", "Found by island method", tour_out);
+            TourFree(tour);
+        );
     } else {
         MasterPrintf("Invalid method provided in config!\n");
     }
-
 
     TSPInstanceFree(&problem);
     toml_free(config_toml);
