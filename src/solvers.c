@@ -546,6 +546,7 @@ u32 *SolveIsland(GAParameters ga_parameters, IslandParameters island_parameters)
         if (generations_left > island_parameters.epoch_length) {
             GASolverEvolve(&solver.ga, island_parameters.epoch_length);
             IslandSolverDoMigrations(&solver);
+            GASolverCalculatePopulationFitness(&solver.ga); // TODO: wasting some time?
             generations_left -= island_parameters.epoch_length;
         } else {
             GASolverEvolve(&solver.ga, generations_left);
@@ -584,7 +585,30 @@ static bool IslandSolverOkay(const IslandSolver *solver) {
 }
 
 static void IslandSolverDoMigrations(IslandSolver *solver) {
-    // TODO
-    (void)solver;
+    // TODO: migration policies...
+    assert(IslandSolverOkay(solver));
+    i32 dst_rank = solver->parameters.dst_rank;
+    i32 src_rank = solver->parameters.src_rank;
+    u32 migration_amount = solver->parameters.migration_rate*solver->ga.parameters.population_size;
+    u32 n_cities = solver->ga.parameters.problem->n_cities;
+    u32 *src_array = solver->ga.population.tours;
+    if (dst_rank != NONE_RANK) {
+        // TODO: send
+        WorkerPrintf(ANY_RANK, "Sending individuals...\n");
+        WorkerSendU32(
+            src_array,
+            migration_amount*n_cities,
+            dst_rank
+        );
+    }
+    if (src_rank != NONE_RANK) {
+        // TODO: receive
+        WorkerPrintf(ANY_RANK, "Receiving individuals...\n");
+        WorkerReceiveU32(
+            src_array,
+            migration_amount*n_cities,
+            src_rank
+        );
+    }
 }
 // =======================
