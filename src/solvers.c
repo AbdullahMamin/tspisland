@@ -541,6 +541,7 @@ u32 *SolveIsland(GAParameters ga_parameters, IslandParameters island_parameters)
         return NULL;
     }
 
+    GASolverDoLogs(&solver.ga);
     u32 generations_left = ga_parameters.max_generations;
     while (generations_left > 0) {
         if (generations_left > island_parameters.epoch_length) {
@@ -592,9 +593,6 @@ static void IslandSolverDoMigrations(IslandSolver *solver) {
     u32 *array = solver->ga.population.tours;
     for (int i = 0; i < solver->parameters.n_dst; i++) {
         int dst_rank = solver->parameters.dst_ranks[i];
-        if (dst_rank == NONE_RANK) {
-            break;
-        }
         WorkerPrintf(ANY_RANK, "Sending individuals to %d\n", dst_rank);
         WorkerISendU32(
             array,
@@ -604,9 +602,6 @@ static void IslandSolverDoMigrations(IslandSolver *solver) {
     }
     for (int i = 0; i < solver->parameters.n_src; i++) {
         int src_rank = solver->parameters.src_ranks[i];
-        if (src_rank == NONE_RANK) {
-            break;
-        }
         WorkerPrintf(ANY_RANK, "Receiving individuals from %d\n", src_rank);
         WorkerReceiveU32(
             array,
