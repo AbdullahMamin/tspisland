@@ -8,7 +8,6 @@
 #define MAX_CITIES_FOR_EDGE_STATISTICS (10000)
 
 #define MAX_ISLANDS (100)
-#define INVALID_ISLAND (-1)
 
 // Just go from 1 -> 2 -> ... -> n
 u32 *SolveBasic(const TSPInstance *tsp_instance);
