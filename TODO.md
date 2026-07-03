@@ -4,6 +4,7 @@
     * [ ] Island statistics
         * [ ] Inter-island entropy (maybe based on edge "profiles"?)
     * [x] Easy topology setup using something like a JSON file
+    * [ ] Migration buffer and better migration policy
 * [ ] Comparison with other algorithms
 * [ ] Different operators and tests on them
 * [ ] Better selection
