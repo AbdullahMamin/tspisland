@@ -12,28 +12,16 @@ void InitWorkers(int *argc, char ***argv) {
     g_argv = *argv;
     MPI_Comm_size(MPI_COMM_WORLD, &g_n_procs);
     MPI_Comm_rank(MPI_COMM_WORLD, &g_rank);
-    WorkerPrintf("Hello!\n");
+    WorkerPrintf(ANY_RANK, "Hello!\n");
 }
 
 void DeinitWorkers(void) {
-    WorkerPrintf("Goodbye!\n");
+    WorkerPrintf(ANY_RANK, "Goodbye!\n");
     MPI_Finalize();
 }
 
 int WorkerRank(void) {
     return g_rank;
-}
-
-void MasterDo(void (*work)(void)) {
-    if (g_rank == MASTER_RANK) {
-        work();
-    }
-}
-
-void SlaveDo(void (*work)(void)) {
-    if (g_rank != MASTER_RANK) {
-        work();
-    }
 }
 
 int GetArgc(void) {

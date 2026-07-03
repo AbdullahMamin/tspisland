@@ -4,9 +4,14 @@
 #include <mpi.h>
 #include <stdio.h>
 
+#define ANY_RANK (-1)
 #define MASTER_RANK (0)
 
-#define WorkerPrintf(...) {printf("[%d]: ", WorkerRank()); printf(__VA_ARGS__);}
+#define WorkerDo(rank, ...) {if ((rank) == ANY_RANK || WorkerRank() == (rank)) {__VA_ARGS__}}
+#define MasterDo(...) WorkerDo(MASTER_RANK, __VA_ARGS__)
+
+#define WorkerPrintf(rank, ...) {printf("[%d]: ", WorkerRank()); printf(__VA_ARGS__);}
+#define MasterPrintf(...) WorkerPrintf(MASTER_RANK, __VA_ARGS__)
 
 // Initializes MPI and worker globals
 void InitWorkers(int *argc, char ***argv);
@@ -16,12 +21,6 @@ void DeinitWorkers(void);
 
 // Returns global worker rank
 int WorkerRank(void);
-
-// Make the master do some work
-void MasterDo(void (*work)(void));
-
-// Make non-masters do some work
-void SlaveDo(void (*work)(void));
 
 // Easy access to argc where needed
 int GetArgc(void);
