@@ -248,6 +248,7 @@ int main(int argc, char *argv[]) {
 
             ga_parameters.summary_out = StrConcatenate(6, out_dir, "/island_", island_id, "_", name, ".summary.csv");
             ga_parameters.edge_entropy_out = StrConcatenate(6, out_dir, "/island_", island_id, "_", name, ".entropy.csv");
+            ga_parameters.edge_heat_out = StrConcatenate(6, out_dir, "/island_", island_id, "_", name, ".heat");
             u32 *tour = SolveIsland(ga_parameters, island_parameters);
             TourWriteToFile(tour, problem.n_cities, "Tour", "Found by island method", StrConcatenate(6, out_dir, "/island_", island_id, "_", name, ".tour"));
             TourFree(tour);
