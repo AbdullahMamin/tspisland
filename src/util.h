@@ -7,6 +7,8 @@
 #include <time.h>
 #include "types.h"
 
+// TODO: Uniformly distributed random function
+
 void SeedRNG(void);
 
 i32 RandomInt(i32 min, i32 max);
