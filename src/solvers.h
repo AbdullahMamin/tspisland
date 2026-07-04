@@ -1,4 +1,4 @@
-// solvers.h: some TSP solvers for testing and evaluation purposes
+// solvers.h: some other TSP solvers for testing and evaluation purposes
 #ifndef SOLVERS_H
 #define SOLVERS_H
 #include "tsp.h"
