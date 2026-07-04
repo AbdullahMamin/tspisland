@@ -5,23 +5,26 @@ void SeedRNG(void) {
 }
 
 u32 RandomU32(u32 min, u32 max) {
-    assert(max > min);
+    assert(max >= min);
+    if (min == max) return min;
     return min + rand()%(max - min + 1);
 }
 
 i32 RandomI32(i32 min, i32 max) {
-    assert(max > min);
+    assert(max >= min);
+    if (min == max) return min;
     return min + rand()%(max - min + 1);
 }
 
 f64 RandomF64(f64 min, f64 max) {
-    assert(max > min);
-    return min + (f64)rand()/(f64)RAND_MAX*(max - min);
+    assert(max >= min);
+    return min + ((f64)rand()/(f64)RAND_MAX)*(max - min);
 }
 
 bool CoinFlip(f64 chance) {
-    assert(fabs(chance) <= 1.0);
-    return RandomF64(0.0, 1.0) < chance;
+    assert(0.0 <= chance && chance <= 1.0);
+    if (chance == 0.0) return false;
+    return RandomF64(0.0, 1.0) <= chance;
 }
 
 // TODO: this algorithm is slow, but should be fine for our purposes
