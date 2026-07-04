@@ -1,6 +1,10 @@
 #include "ga.h"
 
+// TODO: No need for GAIslandUpdatePopulationFitness() if we fix things up
+
 // Internal functions that don't need to be exposed
+static void GAIslandDoLogHeaders(GAIsland *island);
+static void GAIslandDoLogs(GAIsland *island);
 static void GAIslandUpdatePopulationFitness(GAIsland *island);
 static void MutateTour(Tour *tour, f64 strength);
 static void CrossoverTours(Table *crossover_tracker, Tour *child, Tour *parent1, Tour *parent2);
@@ -57,7 +61,17 @@ GAIsland GAIslandInit(const TSPInstance *problem, GAParameters parameters) {
         island.population_fitness[i] = -1.0;
     }
 
-    // TODO: file headers
+    for (u32 i = 0; i < island.parameters.population_size; i++) {
+        Tour individual = TourArrayAt(
+            &island.population,
+            island.problem->n_cities,
+            i
+        );
+        TourRandomize(&individual);
+        assert(TourIsValid(&individual, NULL));
+    }
+
+    GAIslandDoLogHeaders(&island);
 
     return island;
 }
@@ -90,7 +104,7 @@ void GAIslandEvolve(GAIsland *island, u32 n_generations) {
             island->parameters.population_size - 1
         );
 
-        // TODO: write stuff to files
+        GAIslandDoLogs(island);
 
         // Crossover
         // TODO: Better selection
@@ -122,7 +136,8 @@ void GAIslandEvolve(GAIsland *island, u32 n_generations) {
             f64 child_fitness = TourEvaluate(island->problem, &child);
             f64 parent1_fitness = island->population_fitness[*ArrayAt(&island->shuffle_indices, i)];
             if (child_fitness >= parent1_fitness) {
-                TourCopy(&parent1, &child, island->problem->n_cities);
+                TourCopy(&parent1, &child);
+                island->population_fitness[*ArrayAt(&island->shuffle_indices, i)] = child_fitness;
             }
         }
 
@@ -138,6 +153,46 @@ void GAIslandEvolve(GAIsland *island, u32 n_generations) {
                 island->population_fitness[i] = -1.0;
             }
         }
+    }
+}
+
+static void GAIslandDoLogHeaders(GAIsland *island) {
+    if (island->parameters.fitness_summary_file) {
+        fprintf(
+            island->parameters.fitness_summary_file,
+            "min,max,avg\n"
+        );
+    }
+
+    if (island->parameters.edge_profile_file) {
+        
+    }
+}
+
+static void GAIslandDoLogs(GAIsland *island) {
+    if (island->parameters.fitness_summary_file) {
+        f64 avg = island->population_fitness[0];
+        f64 min = avg;
+        f64 max = avg;
+        for (u32 i = 1; i < island->parameters.population_size; i++) {
+            f64 fit = island->population_fitness[i];
+            avg += fit;
+            if (fit < min) {
+                min = fit;
+            }
+            if (fit > max) {
+                max = fit;
+            }
+        }
+        avg /= island->parameters.population_size;
+        fprintf(
+            island->parameters.fitness_summary_file,
+            "%f,%f,%f\n", min, max, avg
+        );
+    }
+
+    if (island->parameters.edge_profile_file) {
+        
     }
 }
 
@@ -172,19 +227,21 @@ static void MutateTour(Tour *tour, f64 strength) {
 static void CrossoverTours(Table *crossover_tracker, Tour *child, Tour *parent1, Tour *parent2) {
     assert(
         TableOkay(crossover_tracker) &&
-        TourIsValid(child, NULL) &&
+        TourOkay(child) &&
         TourIsValid(parent1, NULL) &&
-        TourIsValid(parent2, NULL)
+        TourIsValid(parent2, NULL) &&
+        child->capacity == parent1->capacity &&
+        child->capacity == parent2->capacity
     );
 
     u32 n_cities = child->capacity;
 
     u32 crossover_length = RandomInt(0, n_cities);
     if (crossover_length == 0) {
-        TourCopy(child, parent2, n_cities);
+        TourCopy(child, parent2);
         return;
     } else if (crossover_length == n_cities) {
-        TourCopy(child, parent1, n_cities);
+        TourCopy(child, parent1);
         return;
     }
 
@@ -192,8 +249,8 @@ static void CrossoverTours(Table *crossover_tracker, Tour *child, Tour *parent1,
 
     u32 crossover_point = RandomInt(0, n_cities - 1);
     for (u32 i = 0; i < crossover_length; i++) {
-        u32 *c = ArrayAt(child, i);
         u32 *p1 = ArrayAt(parent1, (crossover_point + i)%n_cities);
+        u32 *c = ArrayAt(child, i);
         *c = *p1;
         TableInsert(crossover_tracker, *p1);
     }
@@ -205,7 +262,34 @@ static void CrossoverTours(Table *crossover_tracker, Tour *child, Tour *parent1,
         while (TableHas(crossover_tracker, *p2)) {
             p2++;
         }
-        u32 *c = ArrayAt(child, i);
+        u32 *c = ArrayAt(child, crossover_length + i);
         *c = *p2;
+        p2++;
     }
+
+    assert(TourIsValid(child, NULL));
+}
+
+Tour GAIslandBestIndividual(GAIsland *island) {
+    assert(GAIslandOkay(island));
+    GAIslandUpdatePopulationFitness(island);
+    Tour best_individual = TourArrayAt(
+        &island->population,
+        island->problem->n_cities,
+        0
+    );
+    f64 best_fitness = island->population_fitness[0];
+    for (u32 i = 1; i < island->parameters.population_size; i++) {
+        Tour individual = TourArrayAt(
+            &island->population,
+            island->problem->n_cities,
+            i
+        );
+        f64 individual_fitness = island->population_fitness[i];
+        if (individual_fitness > best_fitness) {
+            best_individual = individual;
+            best_fitness = individual_fitness;
+        }
+    }
+    return best_individual;
 }

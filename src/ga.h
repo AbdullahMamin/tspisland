@@ -39,4 +39,7 @@ void GAIslandSeed(GAIsland *island, const TourArray *seeds, size n_seeds);
 // Evolve island for some generations
 void GAIslandEvolve(GAIsland *island, u32 n_generations);
 
+// Returns the best individual in the population
+Tour GAIslandBestIndividual(GAIsland *island);
+
 #endif // GA_H
