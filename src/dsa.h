@@ -3,6 +3,7 @@
 #define DSA_H
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 #include "types.h"
 #include "util.h"
 
@@ -69,5 +70,8 @@ void ArrayReverse(Array *array, size i, size j);
 
 // Shuffles array from i to j (i and j can wrap around)
 void ArrayShuffle(Array *array, size i, size j);
+
+// Copy from src to dst
+void ArrayCopy(Array *dst, const Array *src, size n_elements);
 
 #endif // DSA_H

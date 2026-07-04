@@ -174,3 +174,16 @@ void ArrayShuffle(Array *array, size i, size j) {
         array->data[idx2] = temp;
     }
 }
+
+void ArrayCopy(Array *dst, const Array *src, size n_elements) {
+    assert(
+        ArrayOkay(dst) &&
+        ArrayOkay(src) &&
+        dst->capacity >= n_elements &&
+        src->capacity >= n_elements
+    );
+    if (dst == src) {
+        return;
+    }
+    memcpy(dst->data, src->data, n_elements*sizeof(u32));
+}
