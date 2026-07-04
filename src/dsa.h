@@ -15,8 +15,8 @@
 // Open addressing is used with simple quadratic probing for collisions
 // Probe sequence may not visit all slots, therefore care has to be put into the table size
 typedef struct {
-    u32 capacity;
-    u32 n_elements;
+    size capacity;
+    size n_elements;
     u32 *values;
 } Table;
 
@@ -26,7 +26,7 @@ typedef struct {
 u32 HashU32(u32 x);
 
 // Allocate a table, the capacity will be made in a specific way to ensure probe sequence works
-Table TableInit(u32 max_inserts);
+Table TableInit(size max_inserts);
 
 // Free table memory
 void TableFree(Table *table);
@@ -37,34 +37,37 @@ bool TableOkay(const Table *table);
 // Clears a table of all elements
 void TableClear(Table *table);
 
-// Insert key into table
-void TableInsert(Table *table, u32 key);
+// Insert key into table and returns if that key was already there or not
+bool TableInsert(Table *table, u32 key);
 
 // Check if table has a certain key in it
 bool TableHas(const Table *table, u32 key);
 
-// Counter with u32 keys
+// Array of u32s
 typedef struct {
-    u32 capacity;
-    u32 *counts;
-} Counter;
+    size capacity;
+    u32 *data;
+} Array;
 
-// Allocate a counter
-Counter CounterInit(u32 capacity);
+// Allocate an array
+Array ArrayInit(size capacity);
 
-// Free counter memory
-void CounterFree(Counter *counter);
+// Creates array slice (must not be freed)
+Array ArraySlice(Array *array, size offset, size length);
 
-// Check if counter allocation worked
-bool CounterOkay(const Counter *counter);
+// Free array memory
+void ArrayFree(Array *array);
 
-// Clears all counts
-void CounterClear(Counter *counter);
+// Check if array allocation worked
+bool ArrayOkay(const Array *array);
 
-// Increment count at idx by amount
-void CounterIncrement(Counter *counter, u32 idx, u32 amount);
+// Returns pointer to array element at index
+u32 *ArrayAt(Array *array, u32 idx);
 
-// Return count at idx
-u32 CounterCount(const Counter *counter, u32 idx);
+// Reverses array from i to j (i and j can wrap around)
+void ArrayReverse(Array *array, size i, size j);
+
+// Shuffles array from i to j (i and j can wrap around)
+void ArrayShuffle(Array *array, size i, size j);
 
 #endif // DSA_H

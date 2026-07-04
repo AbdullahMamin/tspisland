@@ -11,9 +11,9 @@ inline u32 HashU32(u32 x) {
     return x;
 }
 
-Table TableInit(u32 max_inserts) {
+Table TableInit(size max_inserts) {
     // TODO: Slow algorithm, maybe there's better?
-    u32 capacity = 2*max_inserts + 1;
+    size capacity = 2*max_inserts + 1;
     while (!IsPrime(capacity)) {
         capacity += 2;
     }
@@ -23,7 +23,7 @@ Table TableInit(u32 max_inserts) {
         .values = calloc(capacity, sizeof(u32))
     };
     if (table.values) {
-        for (u32 i = 0; i < capacity; i++) {
+        for (size i = 0; i < capacity; i++) {
             table.values[i] = INVALID_KEY;
         }
     }
@@ -43,27 +43,28 @@ bool TableOkay(const Table *table) {
 
 void TableClear(Table *table) {
     assert(TableOkay(table));
-    for (u32 i = 0; i < table->capacity; i++) {
+    for (size i = 0; i < table->capacity; i++) {
         table->values[i] = INVALID_KEY;
     }
     table->n_elements = 0;
 }
 
-void TableInsert(Table *table, u32 key) {
+bool TableInsert(Table *table, u32 key) {
     // Make sure we have space
     assert(
         TableOkay(table) &&
         table->n_elements < table->capacity
     );
 
-    // TODO: would i*i overflow and cause the modulus result to be wrong?
-    u32 hk = HashU32(key)%table->capacity;
-    for (u32 i = 0; i <= table->capacity; i++) {
-        u32 idx = (hk + i*i)%table->capacity;
+    size hk = HashU32(key)%table->capacity;
+    for (size i = 0; i <= table->capacity; i++) {
+        size idx = (hk + i*i)%table->capacity;
         if (table->values[idx] == INVALID_KEY) {
             table->values[idx] = key;
             table->n_elements++;
-            return;
+            return false;
+        } else if (table->values[idx] == key) {
+            return true;
         }
     }
 
@@ -79,57 +80,97 @@ bool TableHas(const Table *table, u32 key) {
         return false;
     }
 
-    // TODO: would i*i overflow and cause the modulus result to be wrong?
-    u32 hk = HashU32(key)%table->capacity;
-    for (u32 i = 0; i <= table->capacity; i++) {
-        u32 idx = (hk + i*i)%table->capacity;
+    size hk = HashU32(key)%table->capacity;
+    for (size i = 0; i <= table->capacity; i++) {
+        size idx = (hk + i*i)%table->capacity;
         if (table->values[idx] == INVALID_KEY) {
-            break;
-        }
-        if (table->values[idx] == key) {
+            return false;
+        } else if (table->values[idx] == key) {
             return true;
         }
     }
     return false;
 }
 
-Counter CounterInit(u32 capacity) {
-    Counter counter = (Counter){
+Array ArrayInit(size capacity) {
+    assert(capacity > 0);
+    return (Array){
         .capacity = capacity,
-        .counts = calloc(capacity, sizeof(u32))
+        .data = calloc(capacity, sizeof(u32))
     };
-    if (counter.counts) {
-        for (u32 i = 0; i < capacity; i++) {
-            counter.counts[i] = 0;
+}
+
+Array ArraySlice(Array *array, size offset, size length) {
+    assert(ArrayOkay(array));
+    Array slice = (Array){
+        .capacity = length,
+        .data = array->data + offset
+    };
+    if (offset + length > array->capacity) {
+        slice.data = NULL;
+    }
+    return slice;
+}
+
+void ArrayFree(Array *array) {
+    if (array->data) {
+        free(array->data);
+        array->data = NULL;
+    }
+}
+
+bool ArrayOkay(const Array *array) {
+    return array->data != NULL;
+}
+
+u32 *ArrayAt(Array *array, u32 idx) {
+    return &array->data[idx];
+}
+
+// TODO
+void ArrayReverse(Array *array, size i, size j) {
+    assert(
+        ArrayOkay(array) &&
+        i < array->capacity &&
+        j < array->capacity
+    );
+
+    size length = (i <= j) ? (j - i + 1) : (array->capacity - j + i + 1);
+    if (length <= 1) {
+        return;
+    }
+
+    for (size a = 0; a < length/2; a++) {
+        u32 temp = array->data[i];
+        array->data[i] = array->data[j];
+        array->data[j] = temp;
+        i = (i + 1)%array->capacity;
+        if (j == 0) {
+            j = array->capacity - 1;
+        } else {
+            j--;
         }
     }
-    return counter;
 }
 
-void CounterFree(Counter *counter) {
-    if (counter->counts) {
-        free(counter->counts);
-        counter->counts = NULL;
+void ArrayShuffle(Array *array, size i, size j) {
+    assert(
+        ArrayOkay(array) &&
+        i < array->capacity &&
+        j < array->capacity
+    );
+
+    size length = (i <= j) ? (j - i + 1) : (array->capacity - j + i + 1);
+    if (length <= 1) {
+        return;
     }
-}
 
-bool CounterOkay(const Counter *counter) {
-    return counter->counts != NULL;
-}
-
-void CounterClear(Counter *counter) {
-    assert(CounterOkay(counter));
-    for (u32 i = 0; i < counter->capacity; i++) {
-        counter->counts[i] = 0;
+    for (size a = 0; a <= length - 2; a++) {
+        size b = RandomInt(a, length - 1);
+        size idx1 = (i + a)%array->capacity;
+        size idx2 = (i + b)%array->capacity;
+        u32 temp = array->data[idx1];
+        array->data[idx1] = array->data[idx2];
+        array->data[idx2] = temp;
     }
-}
-
-void CounterIncrement(Counter *counter, u32 idx, u32 amount) {
-    assert(CounterOkay(counter) && idx < counter->capacity);
-    counter->counts[idx] += amount;
-}
-
-u32 CounterCount(const Counter *counter, u32 idx) {
-    assert(CounterOkay(counter) && idx < counter->capacity);
-    return counter->counts[idx];
 }
