@@ -597,7 +597,7 @@ static void IslandSolverDoMigrations(IslandSolver *solver) {
     u32 *array = solver->ga.population.tours;
     for (int i = 0; i < solver->parameters.n_dst; i++) {
         int dst_rank = solver->parameters.dst_ranks[i];
-        WorkerPrintf(ANY_RANK, "Sending individuals to %d\n", dst_rank);
+        WorkerPrintf(ANY_RANK, "Sending %u individuals to %d\n", migration_amount, dst_rank);
         WorkerISendU32(
             array,
             migration_amount*n_cities,
@@ -606,7 +606,7 @@ static void IslandSolverDoMigrations(IslandSolver *solver) {
     }
     for (int i = 0; i < solver->parameters.n_src; i++) {
         int src_rank = solver->parameters.src_ranks[i];
-        WorkerPrintf(ANY_RANK, "Receiving individuals from %d\n", src_rank);
+        WorkerPrintf(ANY_RANK, "Receiving %u individuals from %d\n", migration_amount, src_rank);
         WorkerReceiveU32(
             array,
             migration_amount*n_cities,
