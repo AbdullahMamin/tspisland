@@ -119,131 +119,19 @@ bool TSPInstanceOkay(const TSPInstance *tsp_instance) {
     return tsp_instance->city_positions != NULL;
 }
 
-TourArray TourArrayInit(const TSPInstance *tsp_instance, u32 n_tours) {
-    assert(TSPInstanceOkay(tsp_instance));
-    u32 n_cities = tsp_instance->n_cities;
-    return (TourArray){
-        .n_tours = n_tours,
-        .n_cities = n_cities,
-        .tours = calloc(n_tours*n_cities, sizeof(u32))
-    };
+Tour TourInit(u32 n_cities) {
+    return ArrayInit(n_cities);
 }
 
-void TourArrayFree(TourArray *tour_array) {
-    if (tour_array->tours) {
-        free(tour_array->tours);
-    }
+void TourFree(Tour *tour) {
+    ArrayFree(tour);
 }
 
-bool TourArrayOkay(const TourArray *tour_array) {
-    return tour_array->tours != NULL;
+bool TourOkay(const Tour *tour) {
+    return ArrayOkay(tour);
 }
 
-void TourArrayCopy(TourArray *dst_array, const TourArray *src_array) {
-    assert(
-        TourArrayOkay(src_array) &&
-        TourArrayOkay(dst_array) &&
-        src_array->n_cities == dst_array->n_cities &&
-        src_array->n_tours == dst_array->n_tours
-    );
-    memcpy(
-        dst_array->tours,
-        src_array->tours,
-        src_array->n_tours*src_array->n_cities*sizeof(u32)
-    );
-}
-
-u32 *TourArrayAt(TourArray *tour_array, u32 i) {
-    assert(TourArrayOkay(tour_array) && i < tour_array->n_tours);
-    return &tour_array->tours[tour_array->n_cities*i];
-}
-
-void TourRandomize(u32 *tour, u32 n_cities) {
-    assert(tour);
-    for (u32 i = 0; i < n_cities; i++) {
-        tour[i] = i;
-    }
-    ShuffleArrayU32(tour, n_cities, 0, n_cities - 1);
-}
-
-bool TourIsValid(const u32 *tour, u32 n_cities, Table *table) {
-    // Make sure that when we do provide a table, it has space
-    assert(TourOkay(tour));
-    assert(!table || (TableOkay(table) && table->capacity >= 2*n_cities));
-
-    bool free_table = false;
-    Table table_struct;
-    if (!table) {
-        table_struct = TableInit(n_cities);
-        table = &table_struct;
-        free_table = true;
-    } else {
-        TableClear(table);
-    }
-
-    bool is_valid = true;
-    for (u32 i = 0; i < n_cities; i++) {
-        // TODO: Doing a TableInsert() after a TableHas() does a lot of redundant 
-        //       calculations which we could have reused
-        if (TableHas(table, tour[i])) {
-            is_valid = false;
-            break;
-        }
-        TableInsert(table, tour[i]);
-    }
-
-    if (free_table) {
-        TableFree(table);
-    }
-
-    return is_valid;
-}
-
-f64 TourEvaluate(const TSPInstance *tsp_instance, const u32 *tour) {
-    assert(TSPInstanceOkay(tsp_instance) && TourOkay(tour));
-    return RoundNearest(tsp_instance->longest_edge_length)/TourLength(tsp_instance, tour);
-}
-
-
-f64 TourLength(const TSPInstance *tsp_instance, const u32 *tour) {
-    assert(TSPInstanceOkay(tsp_instance) && TourOkay(tour));
-    f64 total_distance = 0.f;
-    vec2 last_city = tsp_instance->city_positions[tour[0]];
-    for (u32 i = 1; i < tsp_instance->n_cities; i++) {
-        vec2 current_city = tsp_instance->city_positions[tour[i]];
-        total_distance += RoundNearest(Vec2Distance(last_city, current_city));
-        last_city = current_city;
-    }
-    total_distance += RoundNearest(Vec2Distance(
-        last_city,
-        tsp_instance->city_positions[tour[0]]
-    ));
-    return total_distance;
-}
-
-void TourCopy(u32 *dst_tour, const u32 *src_tour, u32 n_cities) {
-    assert(TourOkay(dst_tour) && TourOkay(src_tour));
-    if (dst_tour == src_tour) {
-        return;
-    }
-    memcpy(dst_tour, src_tour, n_cities*sizeof(u32));
-}
-
-u32 *TourInit(u32 n_cities) {
-    return calloc(n_cities, sizeof(u32));
-}
-
-void TourFree(u32 *tour) {
-    if (tour) {
-        free(tour);
-    }
-}
-
-bool TourOkay(const u32 *tour) {
-    return tour != NULL;
-}
-
-bool TourReadFromFile(u32 *tour, u32 n_cities, const char *file_path) {
+bool TourReadFromFile(Tour *tour, u32 n_cities, const char *file_path) {
     assert(TourOkay(tour) && file_path);
 
     bool dimension_okay = false;
@@ -315,7 +203,7 @@ bool TourReadFromFile(u32 *tour, u32 n_cities, const char *file_path) {
             if (n_cities_read >= n_cities) {
                 n_cities_read = 0;
             }
-            tour[n_cities_read++] = city - 1;
+            *ArrayAt(tour, n_cities_read++) = city - 1;
         } else {
             // Shouldn't be here... TODO: is this needed really?
             assert(false);
@@ -330,7 +218,7 @@ bool TourReadFromFile(u32 *tour, u32 n_cities, const char *file_path) {
     return n_cities_read == n_cities;
 }
 
-void TourWriteToFile(const u32 *tour, u32 n_cities, const char *name, const char *comment, const char *file_path) {
+void TourWriteToFile(Tour *tour, u32 n_cities, const char *name, const char *comment, const char *file_path) {
     assert(TourIsValid(tour, n_cities, NULL));
     assert(name && comment && file_path);
     FILE *file = fopen(file_path, "w");
@@ -344,9 +232,93 @@ void TourWriteToFile(const u32 *tour, u32 n_cities, const char *name, const char
     fprintf(file, "DIMENSION: %u\n", n_cities);
     fprintf(file, "TOUR_SECTION\n");
     for (u32 i = 0; i < n_cities; i++) {
-        fprintf(file, "%u\n", tour[i] + 1);
+        fprintf(file, "%u\n", *ArrayAt(tour, i) + 1);
     }
     fprintf(file, "-1");
 
     fclose(file);
+}
+
+void TourRandomize(Tour *tour, u32 n_cities) {
+    assert(TourOkay(tour));
+    for (u32 i = 0; i < n_cities; i++) {
+        *ArrayAt(tour, i) = i;
+    }
+    ArrayShuffle(tour, 0, n_cities - 1);
+}
+
+bool TourIsValid(Tour *tour, u32 n_cities, Table *table) {
+    assert(TourOkay(tour));
+
+    // Make sure that when we do provide a table, it has space
+    assert(!table || (TableOkay(table) && table->capacity >= 2*n_cities));
+
+    bool free_table = false;
+    Table table_struct;
+    if (!table) {
+        table_struct = TableInit(n_cities);
+        table = &table_struct;
+        free_table = true;
+    } else {
+        TableClear(table);
+    }
+
+    bool is_valid = true;
+    for (u32 i = 0; i < n_cities; i++) {
+        if (TableInsert(table, *ArrayAt(tour, i))) {
+            is_valid = false;
+            break;
+        }
+    }
+
+    if (free_table) {
+        TableFree(table);
+    }
+
+    return is_valid;
+}
+
+f64 TourEvaluate(const TSPInstance *tsp_instance, Tour *tour) {
+    assert(TSPInstanceOkay(tsp_instance) && TourOkay(tour));
+    return RoundNearest(tsp_instance->longest_edge_length)/TourLength(tsp_instance, tour);
+}
+
+f64 TourLength(const TSPInstance *tsp_instance, Tour *tour) {
+    assert(TSPInstanceOkay(tsp_instance) && TourOkay(tour));
+    f64 total_distance = 0.f;
+    vec2 last_city = tsp_instance->city_positions[*ArrayAt(tour, 0)];
+    for (u32 i = 1; i < tsp_instance->n_cities; i++) {
+        vec2 current_city = tsp_instance->city_positions[*ArrayAt(tour, i)];
+        total_distance += RoundNearest(Vec2Distance(last_city, current_city));
+        last_city = current_city;
+    }
+    total_distance += RoundNearest(Vec2Distance(
+        last_city,
+        tsp_instance->city_positions[*ArrayAt(tour, 0)]
+    ));
+    return total_distance;
+}
+
+void TourCopy(Tour *dst_tour, const Tour *src_tour, u32 n_cities) {
+    ArrayCopy(dst_tour, src_tour, n_cities);
+}
+
+TourArray TourArrayInit(u32 n_cities, size n_tours) {
+    return ArrayInit(n_cities*n_tours);
+}
+
+void TourArrayFree(TourArray *tour_array) {
+    ArrayFree(tour_array);
+}
+
+bool TourArrayOkay(const TourArray *tour_array) {
+    return ArrayOkay(tour_array);
+}
+
+void TourArrayCopy(TourArray *dst_array, const TourArray *src_array, u32 n_cities, size n_tours) {
+    ArrayCopy(dst_array, src_array, n_cities*n_tours);
+}
+
+Tour TourArrayAt(TourArray *tour_array, u32 n_cities, size idx) {
+    return ArraySlice(tour_array, n_cities*idx, n_cities);
 }
