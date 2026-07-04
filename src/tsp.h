@@ -40,19 +40,19 @@ void TourFree(Tour *tour);
 bool TourOkay(const Tour *tour);
 
 // Reads a tour from a TSP file and returns if it succeeded (tour must already be allocated)
-bool TourReadFromFile(Tour *tour, u32 n_cities, const char *file_path);
+bool TourReadFromFile(Tour *tour, const char *file_path);
 
 // Writes a tour to TSP file
-void TourWriteToFile(Tour *tour, u32 n_cities, const char *name, const char *comment, const char *file_path);
+void TourWriteToFile(Tour *tour, const char *name, const char *comment, const char *file_path);
 
 // Randomizes a tour
-void TourRandomize(Tour *tour, u32 n_cities);
+void TourRandomize(Tour *tour);
 
 // Checks if a tour is valid
 // Uses a table to make the complexity O(N)
 // If the table is not provided, will create one on the fly and free it
 // If the table is provided, will clear the table and fill it, but won't free it after
-bool TourIsValid(Tour *tour, u32 n_cities, Table *table);
+bool TourIsValid(Tour *tour, Table *table);
 
 // Returns a "score" of a tour by taking the reciprocal of its length multiplied by the longest edge length
 f64 TourEvaluate(const TSPInstance *tsp_instance, Tour *tour);
@@ -61,7 +61,10 @@ f64 TourEvaluate(const TSPInstance *tsp_instance, Tour *tour);
 f64 TourLength(const TSPInstance *tsp_instance, Tour *tour);
 
 // Copies src tour into dst tour
-void TourCopy(Tour *dst_tour, const Tour *src_tour, u32 n_cities);
+void TourCopy(Tour *dst_tour, const Tour *src_tour);
+
+// Debug print of tour
+void TourPrint(Tour *tour);
 
 typedef Array TourArray;
 

@@ -131,8 +131,10 @@ bool TourOkay(const Tour *tour) {
     return ArrayOkay(tour);
 }
 
-bool TourReadFromFile(Tour *tour, u32 n_cities, const char *file_path) {
+bool TourReadFromFile(Tour *tour, const char *file_path) {
     assert(TourOkay(tour) && file_path);
+
+    u32 n_cities = tour->capacity;
 
     bool dimension_okay = false;
     bool type_okay = false;
@@ -218,13 +220,15 @@ bool TourReadFromFile(Tour *tour, u32 n_cities, const char *file_path) {
     return n_cities_read == n_cities;
 }
 
-void TourWriteToFile(Tour *tour, u32 n_cities, const char *name, const char *comment, const char *file_path) {
-    assert(TourIsValid(tour, n_cities, NULL));
+void TourWriteToFile(Tour *tour, const char *name, const char *comment, const char *file_path) {
+    assert(TourIsValid(tour, NULL));
     assert(name && comment && file_path);
     FILE *file = fopen(file_path, "w");
     if (!file) {
         return;
     }
+
+    u32 n_cities = tour->capacity;
 
     fprintf(file, "NAME: %s\n", name);
     fprintf(file, "COMMENT: %s\n", comment);
@@ -239,16 +243,19 @@ void TourWriteToFile(Tour *tour, u32 n_cities, const char *name, const char *com
     fclose(file);
 }
 
-void TourRandomize(Tour *tour, u32 n_cities) {
+void TourRandomize(Tour *tour) {
     assert(TourOkay(tour));
+    u32 n_cities = tour->capacity;
     for (u32 i = 0; i < n_cities; i++) {
         *ArrayAt(tour, i) = i;
     }
     ArrayShuffle(tour, 0, n_cities - 1);
 }
 
-bool TourIsValid(Tour *tour, u32 n_cities, Table *table) {
+bool TourIsValid(Tour *tour, Table *table) {
     assert(TourOkay(tour));
+
+    u32 n_cities = tour->capacity;
 
     // Make sure that when we do provide a table, it has space
     assert(!table || (TableOkay(table) && table->capacity >= 2*n_cities));
@@ -299,8 +306,16 @@ f64 TourLength(const TSPInstance *tsp_instance, Tour *tour) {
     return total_distance;
 }
 
-void TourCopy(Tour *dst_tour, const Tour *src_tour, u32 n_cities) {
+void TourCopy(Tour *dst_tour, const Tour *src_tour) {
+    assert(dst_tour->capacity == src_tour->capacity);
+    u32 n_cities = dst_tour->capacity;
     ArrayCopy(dst_tour, src_tour, n_cities);
+}
+
+void TourPrint(Tour *tour) {
+    for (u32 i = 0; i < tour->capacity; i++) {
+        printf("%u\n", *ArrayAt(tour, i));
+    }
 }
 
 TourArray TourArrayInit(u32 n_cities, size n_tours) {
