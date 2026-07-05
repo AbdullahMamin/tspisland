@@ -21,6 +21,7 @@ i32 main(i32 argc, char *argv[]) {
             (GAParameters){
                 .population_size = 1000,
                 .mutation_rate = 0.01,
+                .max_mutation_strength = 0.5,
                 .fitness_summary_file = fitness_summary_file
             }
         );
