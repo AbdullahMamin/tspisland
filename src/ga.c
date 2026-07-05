@@ -149,7 +149,7 @@ void GAIslandEvolve(GAIsland *island, u32 n_generations) {
                 i
             );
             if (CoinFlip(island->parameters.mutation_rate)) {
-                MutateTour(&individual, 0.0);
+                MutateTour(&individual, RandomFloat(0.0, island->parameters.max_mutation_strength));
                 island->population_fitness[i] = -1.0;
             }
         }
@@ -215,13 +215,27 @@ static void GAIslandUpdatePopulationFitness(GAIsland *island) {
 
 // TODO: RSM/PSM mutation
 static void MutateTour(Tour *tour, f64 strength) {
-    (void)strength;
     assert(TourOkay(tour));
+    // TODO: magic number
+    if (strength <= 1.0e-5) {
+        // Swap mutation
+        u32 i = RandomInt(0, tour->capacity - 1);
+        u32 j = RandomInt(0, tour->capacity - 1);
+        u32 temp = *ArrayAt(tour, i);
+        *ArrayAt(tour, i) = *ArrayAt(tour, j);
+        *ArrayAt(tour, j) = temp;
+        return;
+    }
+
+    u32 length = strength*tour->capacity;
     u32 i = RandomInt(0, tour->capacity - 1);
-    u32 j = RandomInt(0, tour->capacity - 1);
-    u32 temp = *ArrayAt(tour, i);
-    *ArrayAt(tour, i) = *ArrayAt(tour, j);
-    *ArrayAt(tour, j) = temp;
+    u32 j = (i + length)%tour->capacity;
+    // 50/50 PSM or RSM
+    if (CoinFlip(0.5)) {
+        ArrayShuffle(tour, i, j);
+    } else {
+        ArrayReverse(tour, i, j);
+    }
 }
 
 static void CrossoverTours(Table *crossover_tracker, Tour *child, Tour *parent1, Tour *parent2) {
