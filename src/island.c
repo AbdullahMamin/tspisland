@@ -158,6 +158,11 @@ void GAIslandMigrateTo(GAIsland *island, i32 dst_rank, u32 n_migrants) {
     WorkerPrintf(ANY_RANK, "Sent %u individuals to %d\n", n_migrants, dst_rank);
 }
 
+// TODO: There is a really annoying bug somewhere that makes it so received migrants are invalid even though they were valid when sent
+//       - A hacky fix could be to detect which of these tours are invalid and ignore them (Don't add them to population)
+//       - If it's an MPI issue then I am completely lost...
+//       - TODO: maybe it's an issue with all the typedefs? Maybe just make everything (Array) and hope that that works?
+//               - Probably not though...
 void GAIslandMigrateFrom(GAIsland *island, i32 src_rank, u32 n_migrants) {
     assert(n_migrants <= island->parameters.population_size);
     TourArray population_slice = TourArraySlice(&island->population, island->problem->n_cities, 0, n_migrants);
