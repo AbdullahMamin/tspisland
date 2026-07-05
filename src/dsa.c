@@ -70,6 +70,7 @@ bool TableInsert(Table *table, u32 key) {
 
     // If we are here then it means that the probe did not find an empty slot
     assert(false);
+    return false;
 }
 
 bool TableHas(const Table *table, u32 key) {
