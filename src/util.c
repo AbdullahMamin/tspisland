@@ -1,7 +1,7 @@
 #include "util.h"
 
-void SeedRNG(void) {
-    srand(time(NULL));
+void SeedRNG(u32 seed) {
+    srand(seed);
 }
 
 i32 RandomInt(i32 min, i32 max) {
