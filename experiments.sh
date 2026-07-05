@@ -1,33 +1,27 @@
 # A set of quick experiments on various test data. Outputs go to out/experiments
-echo "== Running experiments... =="
+echo "== Running experiments =="
 
-n_procs=6
+n_procs=5
 
+out_path="out/experiments"
 tsplib_path="data/tsplib"
 # problems=("eil51" "fl417" "lin105" "berlin52" "ch130" "ch150" "bier127" "p654" "d2103" "fl1400" "kroB200")
 # problems=("d2103")
 # problems=("berlin52")
-problems=("bier127")
+problem="berlin52"
 
-cd ./out/bin
-for problem in ${problems[@]}
-do
-    echo "> Doing" $problem
-    mpirun -np $n_procs tspisland --config_in=../../examples/genetic.toml --tsp_in=../../$tsplib_path/$problem.tsp --tour_out=../experiments/$problem.tour
-    echo "> Done with" $problem
-done
+binary=out/bin/tspisland
+mkdir -p $out_path/$problem
+mpirun -np $n_procs $binary examples/ring_topology.toml $tsplib_path/$problem.tsp $out_path/$problem
 
-echo "> Generating graphs..."
-
-cd ../experiments
-for problem in ${problems[@]}
-do
-    echo "> Doing" $problem
-    python ../../scripts/tour_to_image.py ../../$tsplib_path/$problem.tsp $problem.tour $problem.tour.svg
-    # python ../../scripts/summary_to_graph.py $problem.summary.csv $problem.summary.svg
-    # python ../../scripts/entropy_to_graph.py $problem.entropy.csv $problem.entropy.svg
-    # python ../../scripts/heat_to_animation.py ../../$tsplib_path/$problem.tsp $problem.heat $problem.heat.mkv
-    echo "> Done with" $problem
-done
+python3 scripts/summary_to_graph.py $out_path/$problem/island_0.summary.csv $out_path/$problem/island_0.summary.svg
+python3 scripts/summary_to_graph.py $out_path/$problem/island_1.summary.csv $out_path/$problem/island_1.summary.svg
+python3 scripts/summary_to_graph.py $out_path/$problem/island_2.summary.csv $out_path/$problem/island_2.summary.svg
+python3 scripts/tour_to_image.py $tsplib_path/$problem.tsp $out_path/$problem/island_0.tour $out_path/$problem/island_0.tour.svg
+python3 scripts/tour_to_image.py $tsplib_path/$problem.tsp $out_path/$problem/island_1.tour $out_path/$problem/island_1.tour.svg
+python3 scripts/tour_to_image.py $tsplib_path/$problem.tsp $out_path/$problem/island_2.tour $out_path/$problem/island_2.tour.svg
+python3 scripts/profile_to_entropy.py $out_path/$problem/island_0.profile $out_path/$problem/island_0.entropy.svg
+python3 scripts/profile_to_entropy.py $out_path/$problem/island_1.profile $out_path/$problem/island_1.entropy.svg
+python3 scripts/profile_to_entropy.py $out_path/$problem/island_2.profile $out_path/$problem/island_2.entropy.svg
 
 echo "== Finished experiments! =="
