@@ -61,6 +61,16 @@ GAIsland GAIslandInit(const TSPInstance *problem, GAParameters parameters) {
         island.population_fitness[i] = -1.0;
     }
 
+    if (parameters.edge_profile_file && problem->n_cities <= MAX_CITIES_FOR_EDGE_PROFILE) {
+        size n_edges = problem->n_cities*(problem->n_cities - 1)/2;
+        island.edge_counter = ArrayInit(n_edges);
+        if (!ArrayOkay(&island.edge_counter)) {
+            parameters.edge_profile_file = NULL;
+        }
+    } else {
+        parameters.edge_profile_file = NULL;
+    }
+
     for (u32 i = 0; i < actual_population_size; i++) {
         Tour individual = TourArrayAt(
             &island.population,
@@ -72,12 +82,16 @@ GAIsland GAIslandInit(const TSPInstance *problem, GAParameters parameters) {
     assert(GAIslandPopulationIsValid(&island));
 
     GAIslandDoLogHeaders(&island);
+    GAIslandDoLogs(&island);
 
     return island;
 }
 
 void GAIslandFree(GAIsland *island) {
     assert(GAIslandOkay(island));
+    if (island->parameters.edge_profile_file) {
+        ArrayFree(&island->edge_counter);
+    }
     free(island->population_fitness);
     island->population_fitness = NULL;
     TourArrayFree(&island->population);
@@ -104,8 +118,6 @@ void GAIslandEvolve(GAIsland *island, u32 n_generations) {
             0,
             island->parameters.population_size - 1
         );
-
-        GAIslandDoLogs(island);
 
         // Crossover
         // TODO: Better selection
@@ -154,6 +166,8 @@ void GAIslandEvolve(GAIsland *island, u32 n_generations) {
                 island->population_fitness[i] = -1.0;
             }
         }
+
+        GAIslandDoLogs(island);
     }
 }
 
@@ -166,11 +180,13 @@ static void GAIslandDoLogHeaders(GAIsland *island) {
     }
 
     if (island->parameters.edge_profile_file) {
-        // TODO
+        // Nothing to do here
     }
 }
 
 static void GAIslandDoLogs(GAIsland *island) {
+    GAIslandUpdatePopulationFitness(island);
+
     if (island->parameters.fitness_summary_file) {
         f64 avg = island->population_fitness[0];
         f64 min = avg;
@@ -192,8 +208,46 @@ static void GAIslandDoLogs(GAIsland *island) {
         );
     }
 
+    // Weird index calculations come from triangular numbers so I don't have to create a 2D array
     if (island->parameters.edge_profile_file) {
-        // TODO
+        // Clear edge counter
+        u32 n_edges = island->problem->n_cities*(island->problem->n_cities - 1)/2;
+        for (u32 j = 0; j < n_edges; j++) {
+            *ArrayAt(&island->edge_counter, j) = 0;
+        }
+
+        // Count edges
+        for (u32 i = 0; i < island->parameters.population_size; i++) {
+            Tour tour = TourArrayAt(&island->population, island->problem->n_cities, i);
+            for (u32 j = 0; j < island->problem->n_cities; j++) {
+                u32 from = *ArrayAt(&tour, j);
+                u32 to = *ArrayAt(&tour, (j + 1)%island->problem->n_cities);
+                if (from > to) {
+                    u32 temp = from;
+                    from = to;
+                    to = temp;
+                }
+                u32 row = island->problem->n_cities - from - 2;
+                u32 col = to - from - 1;
+                u32 idx = row*(row + 1)/2 + col;
+                *ArrayAt(&island->edge_counter, idx) += 1;
+            }
+        }
+
+        // Log edges to file
+        for (u32 from = 0; from < island->problem->n_cities - 1; from++) {
+            for (u32 to = from + 1; to < island->problem->n_cities; to++) {
+                u32 row = island->problem->n_cities - from - 2;
+                u32 col = to - from - 1;
+                u32 idx = row*(row + 1)/2 + col;
+                u32 count = *ArrayAt(&island->edge_counter, idx);
+                if (count == 0) {
+                    continue;
+                }
+                fprintf(island->parameters.edge_profile_file, "%u,%u,%f\n", from, to, (f64)count/(f64)island->parameters.population_size);
+            }
+        }
+        fprintf(island->parameters.edge_profile_file, "---\n");
     }
 }
 

@@ -3,6 +3,8 @@
 #define GA_H
 #include "tsp.h"
 
+#define MAX_CITIES_FOR_EDGE_PROFILE (1000)
+
 typedef struct {
     // optional metric paths (NULL if unneeded)
     FILE *fitness_summary_file;
@@ -22,6 +24,9 @@ typedef struct {
     Table crossover_tracker;
     TourArray population;
     f64 *population_fitness;
+
+    // Edge counter for edge_profile
+    Array edge_counter;
 } GAIsland;
 
 // Initialize single GA island
