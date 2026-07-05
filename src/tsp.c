@@ -337,3 +337,18 @@ void TourArrayCopy(TourArray *dst_array, const TourArray *src_array, u32 n_citie
 Tour TourArrayAt(TourArray *tour_array, u32 n_cities, size idx) {
     return ArraySlice(tour_array, n_cities*idx, n_cities);
 }
+
+TourArray TourArraySlice(TourArray *tour_array, u32 n_cities, size idx, size n_tours) {
+    return ArraySlice(tour_array, n_cities*idx, n_cities*n_tours);
+}
+
+bool TourArrayIsValid(TourArray *tour_array, u32 n_cities) {
+    size n_tours = tour_array->capacity/n_cities;
+    for (size i = 0; i < n_tours; i++) {
+        Tour tour = TourArrayAt(tour_array, n_cities, i);
+        if (!TourIsValid(&tour, NULL)) {
+            return false;
+        }
+    }
+    return true;
+}

@@ -83,4 +83,10 @@ void TourArrayCopy(TourArray *dst_array, const TourArray *src_array, u32 n_citie
 // Returns tour at specific index of array
 Tour TourArrayAt(TourArray *tour_array, u32 n_cities, size idx);
 
+// Returns slice of tour array
+TourArray TourArraySlice(TourArray *tour_array, u32 n_cities, size idx, size n_tours);
+
+// Returns whether or not all tours in array are valid
+bool TourArrayIsValid(TourArray *tour_array, u32 n_cities);
+
 #endif // TSP_H
