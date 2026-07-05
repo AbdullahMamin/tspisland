@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
-#include "types.h"
+#include "dsa.h"
 
 #define MAX_WORKERS (1024)
 
@@ -45,14 +45,14 @@ char **GetArgv(void);
 i32 WorkerCount(void);
 
 // Send u32 array to another worker
-void WorkerSendU32(u32 *array, size n_elements, i32 dst_rank);
+void WorkerSendArray(Array *array, i32 dst_rank);
 
 // Send u32 array to another (non-blocking)
 // Note: Waits until last non-blocking send finished if there was one
-void WorkerISendU32(u32 *array, size n_elements, i32 dst_rank);
+void WorkerISendArray(Array *array, i32 dst_rank);
 
 // Receive u32 array from another worker
-void WorkerReceiveU32(u32 *array, size n_elements, i32 src_rank);
+void WorkerReceiveArray(Array *array, i32 src_rank);
 
 // Waits for all pending requests to finish.
 void WorkerWaitForAllRequests(void);
