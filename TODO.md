@@ -12,8 +12,8 @@
 * [ ] Better selection
 * [ ] Different way to calculate fitness
 * [ ] Seeds
-* [ ] Clean up solvers.h and solvers.c code
-* [ ] Better errors
+* [*] Clean up solvers.h and solvers.c code
+* [*] Better errors
 * [ ] Deploy to HPC
-* [ ] Clean up main
-* [ ] Better logs
+* [*] Clean up main
+* [*] Better logs
