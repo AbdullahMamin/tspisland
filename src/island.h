@@ -1,0 +1,21 @@
+// island.h: our island GA method
+#ifndef ISLAND_H
+#define ISLAND_H
+#include "ga.h"
+#include "worker.h"
+#include "tomlc17.h"
+
+GAParameters GAIslandParametersFromConfig(toml_result_t config);
+
+f64 MigrationRateFromConfig(toml_result_t config);
+u32 EpochLengthFromConfig(toml_result_t config);
+u32 EpochCountFromConfig(toml_result_t config);
+u32 IslandCountFromConfig(toml_result_t config);
+
+i32 *IslandSourcesFromConfig(toml_result_t config, i32 *n_src);
+i32 *IslandDestinationsFromConfig(toml_result_t config, i32 *n_dst);
+
+void GAIslandMigrateTo(GAIsland *island, i32 dst_rank, u32 n_migrants);
+void GAIslandMigrateFrom(GAIsland *island, i32 src_rank, u32 n_migrants);
+
+#endif // ISLAND_H
