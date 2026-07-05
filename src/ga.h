@@ -42,4 +42,7 @@ void GAIslandEvolve(GAIsland *island, u32 n_generations);
 // Returns the best individual in the population
 Tour GAIslandBestIndividual(GAIsland *island);
 
+// Mainly for debugging
+bool GAIslandPopulationIsValid(GAIsland *island);
+
 #endif // GA_H

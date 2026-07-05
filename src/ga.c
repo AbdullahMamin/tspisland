@@ -61,15 +61,15 @@ GAIsland GAIslandInit(const TSPInstance *problem, GAParameters parameters) {
         island.population_fitness[i] = -1.0;
     }
 
-    for (u32 i = 0; i < island.parameters.population_size; i++) {
+    for (u32 i = 0; i < actual_population_size; i++) {
         Tour individual = TourArrayAt(
             &island.population,
             island.problem->n_cities,
             i
         );
         TourRandomize(&individual);
-        assert(TourIsValid(&individual, NULL));
     }
+    assert(GAIslandPopulationIsValid(&island));
 
     GAIslandDoLogHeaders(&island);
 
@@ -97,6 +97,7 @@ void GAIslandSeed(GAIsland *island, const TourArray *seeds, size n_seeds) {
 void GAIslandEvolve(GAIsland *island, u32 n_generations) {
     assert(GAIslandOkay(island));
     for (u32 generation = 0; generation < n_generations; generation++) {
+        assert(GAIslandPopulationIsValid(island));
         GAIslandUpdatePopulationFitness(island);
         ArrayShuffle(
             &island->shuffle_indices,
@@ -165,7 +166,7 @@ static void GAIslandDoLogHeaders(GAIsland *island) {
     }
 
     if (island->parameters.edge_profile_file) {
-        
+        // TODO
     }
 }
 
@@ -192,7 +193,7 @@ static void GAIslandDoLogs(GAIsland *island) {
     }
 
     if (island->parameters.edge_profile_file) {
-        
+        // TODO
     }
 }
 
@@ -213,7 +214,6 @@ static void GAIslandUpdatePopulationFitness(GAIsland *island) {
     }
 }
 
-// TODO: RSM/PSM mutation
 static void MutateTour(Tour *tour, f64 strength) {
     assert(TourOkay(tour));
     // TODO: magic number
@@ -224,6 +224,7 @@ static void MutateTour(Tour *tour, f64 strength) {
         u32 temp = *ArrayAt(tour, i);
         *ArrayAt(tour, i) = *ArrayAt(tour, j);
         *ArrayAt(tour, j) = temp;
+        assert(TourIsValid(tour, NULL));
         return;
     }
 
@@ -236,17 +237,24 @@ static void MutateTour(Tour *tour, f64 strength) {
     } else {
         ArrayReverse(tour, i, j);
     }
+    assert(TourIsValid(tour, NULL));
 }
 
 static void CrossoverTours(Table *crossover_tracker, Tour *child, Tour *parent1, Tour *parent2) {
-    assert(
-        TableOkay(crossover_tracker) &&
-        TourOkay(child) &&
-        TourIsValid(parent1, NULL) &&
-        TourIsValid(parent2, NULL) &&
-        child->capacity == parent1->capacity &&
-        child->capacity == parent2->capacity
-    );
+    // assert(
+    //     TableOkay(crossover_tracker) &&
+    //     TourOkay(child) &&
+    //     TourIsValid(parent1, NULL) &&
+    //     TourIsValid(parent2, NULL) &&
+    //     child->capacity == parent1->capacity &&
+    //     child->capacity == parent2->capacity
+    // );
+    assert(TableOkay(crossover_tracker));
+    assert(TourOkay(child));
+    assert(TourIsValid(parent1, NULL));
+    assert(TourIsValid(parent2, NULL));
+    assert(child->capacity == parent1->capacity);
+    assert(child->capacity == parent2->capacity);
 
     u32 n_cities = child->capacity;
 
@@ -306,4 +314,8 @@ Tour GAIslandBestIndividual(GAIsland *island) {
         }
     }
     return best_individual;
+}
+
+bool GAIslandPopulationIsValid(GAIsland *island) {
+    return TourArrayIsValid(&island->population, island->problem->n_cities);
 }
