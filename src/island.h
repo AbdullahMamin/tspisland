@@ -15,7 +15,9 @@ u32 IslandCountFromConfig(toml_result_t config);
 i32 *IslandSourcesFromConfig(toml_result_t config, i32 *n_src);
 i32 *IslandDestinationsFromConfig(toml_result_t config, i32 *n_dst);
 
-void GAIslandMigrateTo(GAIsland *island, i32 dst_rank, u32 n_migrants);
-void GAIslandMigrateFrom(GAIsland *island, i32 src_rank, u32 n_migrants);
+void GAIslandFillMigrants(GAIsland *island, TourArray *migrants);
+
+void MigrateTo(TourArray *migrants, u32 n_cities, i32 dst_rank);
+void MigrateFrom(TourArray *migrants, u32 n_cities, i32 src_rank);
 
 #endif // ISLAND_H

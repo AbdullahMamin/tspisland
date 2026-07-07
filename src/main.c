@@ -45,18 +45,36 @@ i32 main(i32 argc, char *argv[]) {
 
         u32 n_migrants = migration_rate*parameters.population_size;
 
-        // TODO: migration buffer needed so last src island doesn't overwrite everything
-        // TODO: could also make islands self configure to know how much to send and receive
-        ///      to/from each, which means we won't need a seperate migration buffer
+        // (n_src + 1) buffers. One for outgoing and the rest for incoming migrants.
+        TourArray migrants = TourArrayInit(problem.n_cities, n_migrants*(n_src + 1));
+        if (!TourArrayOkay(&migrants)) {
+            WorkerPanicf(ANY_RANK, "Couldn't initialize migration buffer!\n");
+        }
+
         for (u32 epoch = 0; epoch < n_epochs - 1; epoch++) {
             WorkerPrintf(ANY_RANK, "Evolving for %u generations\n", epoch_length);
             GAIslandEvolve(&island, epoch_length);
             WorkerPrintf(ANY_RANK, "Evolution complete\n");
+
+            // TODO: migration policy
+            // TODO: some wasted steps here when n_src = 0 or n_dst = 0, but it's not a big deal.
+            TourArray outgoing_migrants = TourArraySlice(&migrants, problem.n_cities, 0, n_migrants);
+            GAIslandFillMigrants(&island, &outgoing_migrants);
             for (i32 i = 0; i < n_dst; i++) {
-                GAIslandMigrateTo(&island, dst_islands[i], n_migrants);
+                MigrateTo(&outgoing_migrants, problem.n_cities, dst_islands[i]);
             }
             for (i32 i = 0; i < n_src; i++) {
-                GAIslandMigrateFrom(&island, src_islands[i], n_migrants);
+                TourArray incoming_migrants = TourArraySlice(&migrants, problem.n_cities, i + 1, n_migrants);
+                MigrateFrom(&incoming_migrants, problem.n_cities, src_islands[i]);
+            }
+            if (n_src > 0) {
+                for (u32 i = 0; i < n_migrants; i++) {
+                    i32 take_from = RandomInt(0, n_src - 1);
+                    TourArray incoming_migrants = TourArraySlice(&migrants, problem.n_cities, take_from + 1, n_migrants);
+                    Tour migrant = TourArrayAt(&incoming_migrants, problem.n_cities, i);
+                    Tour dst = TourArrayAt(&island.population, problem.n_cities, i);
+                    TourCopy(&dst, &migrant);
+                }
             }
         }
         WorkerPrintf(ANY_RANK, "Last evolution for %u generations\n", epoch_length);
@@ -66,6 +84,7 @@ i32 main(i32 argc, char *argv[]) {
         TourWriteToFile(&best_tour, "TSP tour", "Found by GA island", StrConcatenate(4, argv[3], "/", island_name, ".tour"));
 
         WorkerPrintf(ANY_RANK, "Finished!\n");
+        TourArrayFree(&migrants);
         GAIslandFree(&island);
         if (edge_profile_file) {
             fclose(edge_profile_file);

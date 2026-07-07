@@ -150,26 +150,22 @@ i32 *IslandDestinationsFromConfig(toml_result_t config, i32 *n_dst) {
     return g_dst_islands;
 }
 
-void GAIslandMigrateTo(GAIsland *island, i32 dst_rank, u32 n_migrants) {
-    assert(n_migrants <= island->parameters.population_size);
-    TourArray population_slice = TourArraySlice(&island->population, island->problem->n_cities, 0, n_migrants);
-    assert(TourArrayIsValid(&population_slice, island->problem->n_cities));
-    WorkerISendArray(&population_slice, dst_rank);
+void GAIslandFillMigrants(GAIsland *island, TourArray *migrants) {
+    u32 n_migrants = migrants->capacity/island->problem->n_cities;
+    TourArrayCopy(migrants, &island->population, island->problem->n_cities, n_migrants);
+}
+
+void MigrateTo(TourArray *migrants, u32 n_cities, i32 dst_rank) {
+    assert(TourArrayIsValid(migrants, n_cities));
+    WorkerISendArray(migrants, dst_rank);
+    u32 n_migrants = migrants->capacity/n_cities;
     WorkerPrintf(ANY_RANK, "Sent %u individuals to %d\n", n_migrants, dst_rank);
 }
 
-// TODO: There is a really annoying bug somewhere that makes it so received migrants are invalid even though they were valid when sent
-//       - A hacky fix could be to detect which of these tours are invalid and ignore them (Don't add them to population)
-//       - If it's an MPI issue then I am completely lost...
-//       - TODO: maybe it's an issue with all the typedefs? Maybe just make everything (Array) and hope that that works?
-//               - Probably not though...
-void GAIslandMigrateFrom(GAIsland *island, i32 src_rank, u32 n_migrants) {
-    assert(n_migrants <= island->parameters.population_size);
-    TourArray population_slice = TourArraySlice(&island->population, island->problem->n_cities, 0, n_migrants);
-    WorkerReceiveArray(&population_slice, src_rank);
-    assert(TourArrayIsValid(&population_slice, island->problem->n_cities));
-    for (u32 i = 0; i < n_migrants; i++) {
-        island->population_fitness[i] = -1.0;
-    }
+void MigrateFrom(TourArray *migrants, u32 n_cities, i32 src_rank) {
+    assert(TourArrayOkay(migrants));
+    WorkerReceiveArray(migrants, src_rank);
+    assert(TourArrayIsValid(migrants, n_cities));
+    u32 n_migrants = migrants->capacity/n_cities;
     WorkerPrintf(ANY_RANK, "Received %u individuals from %d\n", n_migrants, src_rank);
 }
