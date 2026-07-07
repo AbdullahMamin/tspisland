@@ -6,3 +6,6 @@ notes.md
 
 # Submission scripts for hpc
 submit/*
+
+# hpc out directory
+hpc/*
