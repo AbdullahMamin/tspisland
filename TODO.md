@@ -1,10 +1,10 @@
 * [x] Edge heat graph
 * [x] Make code more concise and consistent
-* [ ] Island distribution
+* [x] Island distribution
     * [ ] Island statistics
         * [ ] Inter-island entropy (maybe based on edge "profiles"?)
     * [x] Easy topology setup using something like a JSON file
-    * [ ] Migration buffer and better migration policy
+    * [x] Migration buffer and better migration policy
     * [ ] Heterogeneous islands (different population sizes)
     * [ ] Fix bug where sometimes MPI_Recv receives invalid tours even though they were valid when sent
 * [ ] Comparison with other algorithms
@@ -12,8 +12,8 @@
 * [ ] Better selection
 * [ ] Different way to calculate fitness
 * [ ] Seeds
-* [*] Clean up solvers.h and solvers.c code
-* [*] Better errors
-* [ ] Deploy to HPC
-* [*] Clean up main
-* [*] Better logs
+* [x] Clean up solvers.h and solvers.c code
+* [x] Better errors
+* [x] Deploy to HPC
+* [x] Clean up main
+* [x] Better logs
