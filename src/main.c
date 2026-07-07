@@ -3,7 +3,7 @@
 
 i32 main(i32 argc, char *argv[]) {
     InitWorkers(&argc, &argv);
-    SeedRNG(RANDOM_SEED);
+    SeedRNG((RANDOM_SEED + WorkerRank())*WorkerRank());
     StrInit(1024*1024); // 1 MB should be enough
 
     if (argc != 4) {
@@ -52,7 +52,7 @@ i32 main(i32 argc, char *argv[]) {
         }
 
         for (u32 epoch = 0; epoch < n_epochs - 1; epoch++) {
-            WorkerPrintf(ANY_RANK, "Evolving for %u generations\n", epoch_length);
+            WorkerPrintf(ANY_RANK, "Evolving for %u generations at epoch %u\n", epoch_length, epoch);
             GAIslandEvolve(&island, epoch_length);
             WorkerPrintf(ANY_RANK, "Evolution complete\n");
 
@@ -79,6 +79,8 @@ i32 main(i32 argc, char *argv[]) {
         }
         WorkerPrintf(ANY_RANK, "Last evolution for %u generations\n", epoch_length);
         GAIslandEvolve(&island, epoch_length);
+
+        MPI_Barrier(MPI_COMM_WORLD);
 
         Tour best_tour = GAIslandBestIndividual(&island);
         TourWriteToFile(&best_tour, "TSP tour", "Found by GA island", StrConcatenate(4, argv[3], "/", island_name, ".tour"));
