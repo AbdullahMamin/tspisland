@@ -65,10 +65,10 @@ GAIsland GAIslandInit(const TSPInstance *problem, GAParameters parameters) {
         size n_edges = problem->n_cities*(problem->n_cities - 1)/2;
         island.edge_counter = ArrayInit(n_edges);
         if (!ArrayOkay(&island.edge_counter)) {
-            parameters.edge_profile_file = NULL;
+            island.parameters.edge_profile_file = NULL;
         }
     } else {
-        parameters.edge_profile_file = NULL;
+        island.parameters.edge_profile_file = NULL;
     }
 
     for (u32 i = 0; i < actual_population_size; i++) {
@@ -212,8 +212,8 @@ static void GAIslandDoLogs(GAIsland *island) {
     if (island->parameters.edge_profile_file) {
         // Clear edge counter
         u32 n_edges = island->problem->n_cities*(island->problem->n_cities - 1)/2;
-        for (u32 j = 0; j < n_edges; j++) {
-            *ArrayAt(&island->edge_counter, j) = 0;
+        for (u32 i = 0; i < n_edges; i++) {
+            *ArrayAt(&island->edge_counter, i) = 0;
         }
 
         // Count edges

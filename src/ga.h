@@ -3,7 +3,7 @@
 #define GA_H
 #include "tsp.h"
 
-#define MAX_CITIES_FOR_EDGE_PROFILE (1000)
+#define MAX_CITIES_FOR_EDGE_PROFILE (3000)
 
 typedef struct {
     // optional metric paths (NULL if unneeded)
