@@ -4,5 +4,5 @@ out/
 # My personal notes
 notes.md
 
-# The submission script for the HPC
-submit.sh
+# Submission scripts for hpc
+submit/*
