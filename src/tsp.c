@@ -343,6 +343,7 @@ TourArray TourArraySlice(TourArray *tour_array, u32 n_cities, size idx, size n_t
 }
 
 bool TourArrayIsValid(TourArray *tour_array, u32 n_cities) {
+    assert(TourArrayOkay(tour_array));
     size n_tours = tour_array->capacity/n_cities;
     for (size i = 0; i < n_tours; i++) {
         Tour tour = TourArrayAt(tour_array, n_cities, i);
