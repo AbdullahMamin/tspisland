@@ -11,6 +11,9 @@ f64 MigrationRateFromConfig(toml_result_t config);
 u32 EpochLengthFromConfig(toml_result_t config);
 u32 EpochCountFromConfig(toml_result_t config);
 u32 IslandCountFromConfig(toml_result_t config);
+bool LogSummaryFromConfig(toml_result_t config);
+bool LogProfileFromConfig(toml_result_t config);
+bool LogEntropyFromConfig(toml_result_t config);
 
 i32 *IslandSourcesFromConfig(toml_result_t config, i32 *n_src);
 i32 *IslandDestinationsFromConfig(toml_result_t config, i32 *n_dst);

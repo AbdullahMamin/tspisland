@@ -78,10 +78,34 @@ u32 IslandCountFromConfig(toml_result_t config) {
         WorkerPanicf(ANY_RANK, "Islands not setup properly in config!\n");
     }
     u32 n_islands = islands.u.arr.size;
-    if (n_islands > (u32)WorkerCount()) {
-        WorkerPanicf(ANY_RANK, "Too many islands for the number of workers!\n");
+    if (n_islands != (u32)WorkerCount()) {
+        WorkerPanicf(ANY_RANK, "Number of islands not equal to the number of workers!\n");
     }
     return n_islands;
+}
+
+bool LogSummaryFromConfig(toml_result_t config) {
+    toml_datum_t log_summary = toml_seek(config.toptab, "global.log_summary");
+    if (log_summary.type != TOML_BOOLEAN) {
+        return false;
+    }
+    return log_summary.u.boolean;
+}
+
+bool LogProfileFromConfig(toml_result_t config) {
+    toml_datum_t log_profile = toml_seek(config.toptab, "global.log_profile");
+    if (log_profile.type != TOML_BOOLEAN) {
+        return false;
+    }
+    return log_profile.u.boolean;
+}
+
+bool LogEntropyFromConfig(toml_result_t config) {
+    toml_datum_t log_entropy = toml_seek(config.toptab, "global.log_entropy");
+    if (log_entropy.type != TOML_BOOLEAN) {
+        return false;
+    }
+    return log_entropy.u.boolean;
 }
 
 i32 *IslandSourcesFromConfig(toml_result_t config, i32 *n_src) {

@@ -33,9 +33,16 @@ i32 main(i32 argc, char *argv[]) {
 
         char island_name[256];
         sprintf(island_name, "island_%d", WorkerRank());
-        FILE *fitness_summary_file = fopen(StrConcatenate(4, argv[3], "/", island_name, ".summary.csv"), "w");
+        FILE *fitness_summary_file = NULL;
+        if (LogSummaryFromConfig(config)) {
+            fitness_summary_file = fopen(StrConcatenate(4, argv[3], "/", island_name, ".summary.csv"), "w");
+        }
+        FILE *edge_profile_file = NULL;
+        if (LogProfileFromConfig(config)) {
+            edge_profile_file = fopen(StrConcatenate(4, argv[3], "/", island_name, ".profile"), "w");
+        }
+
         parameters.fitness_summary_file = fitness_summary_file;
-        FILE *edge_profile_file = fopen(StrConcatenate(4, argv[3], "/", island_name, ".profile"), "w");
         parameters.edge_profile_file = edge_profile_file;
 
         GAIsland island = GAIslandInit(&problem, parameters);
