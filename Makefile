@@ -4,7 +4,7 @@ ERRFLAGS := -Wall -Wextra -Wpedantic -Werror
 LIBS := -lm
 
 OPT := -O3
-CCFLAGS := -std=c99 # -DNDEBUG
+CCFLAGS := -std=c99 -DNDEBUG
 
 SRC_DIR := ./src
 OUT_DIR := ./out
