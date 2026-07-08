@@ -7,6 +7,8 @@
     * [x] Migration buffer and better migration policy
     * [ ] Heterogeneous islands (different population sizes)
     * [ ] Fix bug where sometimes MPI_Recv receives invalid tours even though they were valid when sent
+    * [ ] All topologies and tests on them with statistics
+    * [ ] Final run on large art instances with seeds probably
 * [ ] Comparison with other algorithms
 * [ ] Different operators and tests on them
 * [ ] Better selection
