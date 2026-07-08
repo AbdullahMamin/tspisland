@@ -10,6 +10,7 @@
     * [ ] All topologies and tests on them with statistics
     * [ ] Final run on large art instances with seeds probably
     * [ ] Entropy logging from code (no need for profiles for this)
+    * [ ] Write out tour after each epoch to not lose data when process is killed for some reason
 * [ ] Comparison with other algorithms
 * [ ] Different operators and tests on them
 * [ ] Better selection
