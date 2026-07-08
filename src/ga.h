@@ -3,12 +3,13 @@
 #define GA_H
 #include "tsp.h"
 
-#define MAX_CITIES_FOR_EDGE_PROFILE (3000)
+#define MAX_CITIES_FOR_EDGE_STATISTICS (3000)
 
 typedef struct {
     // optional metric paths (NULL if unneeded)
     FILE *fitness_summary_file;
     FILE *edge_profile_file;
+    FILE *edge_entropy_file;
 
     // parameters
     u32 population_size;

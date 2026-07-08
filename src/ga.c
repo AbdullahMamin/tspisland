@@ -61,14 +61,16 @@ GAIsland GAIslandInit(const TSPInstance *problem, GAParameters parameters) {
         island.population_fitness[i] = -1.0;
     }
 
-    if (parameters.edge_profile_file && problem->n_cities <= MAX_CITIES_FOR_EDGE_PROFILE) {
+    if ((parameters.edge_profile_file || parameters.edge_entropy_file) && problem->n_cities <= MAX_CITIES_FOR_EDGE_STATISTICS) {
         size n_edges = problem->n_cities*(problem->n_cities - 1)/2;
         island.edge_counter = ArrayInit(n_edges);
         if (!ArrayOkay(&island.edge_counter)) {
             island.parameters.edge_profile_file = NULL;
+            island.parameters.edge_entropy_file = NULL;
         }
     } else {
         island.parameters.edge_profile_file = NULL;
+        island.parameters.edge_entropy_file = NULL;
     }
 
     for (u32 i = 0; i < actual_population_size; i++) {
@@ -182,6 +184,13 @@ static void GAIslandDoLogHeaders(GAIsland *island) {
     if (island->parameters.edge_profile_file) {
         // Nothing to do here
     }
+
+    if (island->parameters.edge_entropy_file) {
+        fprintf(
+            island->parameters.edge_entropy_file,
+            "entropy\n"
+        );
+    }
 }
 
 static void GAIslandDoLogs(GAIsland *island) {
@@ -209,7 +218,7 @@ static void GAIslandDoLogs(GAIsland *island) {
     }
 
     // Weird index calculations come from triangular numbers so I don't have to create a 2D array
-    if (island->parameters.edge_profile_file) {
+    if (island->parameters.edge_profile_file || island->parameters.edge_entropy_file) {
         // Clear edge counter
         u32 n_edges = island->problem->n_cities*(island->problem->n_cities - 1)/2;
         for (u32 i = 0; i < n_edges; i++) {
@@ -233,7 +242,9 @@ static void GAIslandDoLogs(GAIsland *island) {
                 *ArrayAt(&island->edge_counter, idx) += 1;
             }
         }
+    }
 
+    if (island->parameters.edge_profile_file) {
         // Log edges to file
         for (u32 from = 0; from < island->problem->n_cities - 1; from++) {
             for (u32 to = from + 1; to < island->problem->n_cities; to++) {
@@ -248,6 +259,20 @@ static void GAIslandDoLogs(GAIsland *island) {
             }
         }
         fprintf(island->parameters.edge_profile_file, "---\n");
+    }
+
+    if (island->parameters.edge_entropy_file) {
+        f64 entropy = 0.0;
+        u32 n_edges = island->problem->n_cities*(island->problem->n_cities - 1)/2;
+        for (u32 i = 0; i < n_edges; i++) {
+            u32 count = *ArrayAt(&island->edge_counter, i);
+            if (count == 0) {
+                continue;
+            }
+            f64 p = (f64)count/(f64)island->parameters.population_size;
+            entropy -= p*log(p);
+        }
+        fprintf(island->parameters.edge_entropy_file, "%f\n", entropy);
     }
 }
 

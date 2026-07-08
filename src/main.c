@@ -41,9 +41,14 @@ i32 main(i32 argc, char *argv[]) {
         if (LogProfileFromConfig(config)) {
             edge_profile_file = fopen(StrConcatenate(4, argv[3], "/", island_name, ".profile"), "w");
         }
+        FILE *edge_entropy_file = NULL;
+        if (LogEntropyFromConfig(config)) {
+            edge_entropy_file = fopen(StrConcatenate(4, argv[3], "/", island_name, ".entropy.csv"), "w");
+        }
 
         parameters.fitness_summary_file = fitness_summary_file;
         parameters.edge_profile_file = edge_profile_file;
+        parameters.edge_entropy_file = edge_entropy_file;
 
         GAIsland island = GAIslandInit(&problem, parameters);
         if (!GAIslandOkay(&island)) {
