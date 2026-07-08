@@ -68,6 +68,12 @@ i32 main(i32 argc, char *argv[]) {
             GAIslandEvolve(&island, epoch_length);
             WorkerPrintf(ANY_RANK, "Evolution complete\n");
 
+            // Write best tours after each epoch so we don't lose data during crashes
+            char epoch_name[256];
+            sprintf(epoch_name, "epoch_%u", epoch);
+            Tour best_tour = GAIslandBestIndividual(&island);
+            TourWriteToFile(&best_tour, "TSP tour", "Found by GA island", StrConcatenate(6, argv[3], "/", island_name, "_", epoch_name, ".tour"));
+
             // TODO: migration policy
             // TODO: some wasted steps here when n_src = 0 or n_dst = 0, but it's not a big deal.
             TourArray outgoing_migrants = TourArraySlice(&migrants, problem.n_cities, 0, n_migrants);
