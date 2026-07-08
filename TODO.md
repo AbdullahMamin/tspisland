@@ -9,6 +9,7 @@
     * [ ] Fix bug where sometimes MPI_Recv receives invalid tours even though they were valid when sent
     * [ ] All topologies and tests on them with statistics
     * [ ] Final run on large art instances with seeds probably
+    * [ ] Entropy logging from code (no need for profiles for this)
 * [ ] Comparison with other algorithms
 * [ ] Different operators and tests on them
 * [ ] Better selection
