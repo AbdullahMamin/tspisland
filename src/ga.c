@@ -356,16 +356,20 @@ static void CrossoverTours(Table *crossover_tracker, Tour *child, Tour *parent1,
         TableInsert(crossover_tracker, *p1);
     }
 
-    // A bit hacky, but it's okay :)
-    u32 *p2 = ArrayAt(parent2, 0);
+    u32 p2_i = 0;
+    while (*ArrayAt(parent2, p2_i) != *ArrayAt(child, crossover_length - 1)) {
+        p2_i++;
+    }
     u32 from_p2 = n_cities - crossover_length;
     for (u32 i = 0; i < from_p2; i++) {
+        u32 *p2 = ArrayAt(parent2, p2_i);
         while (TableHas(crossover_tracker, *p2)) {
-            p2++;
+            p2_i = (p2_i + 1)%n_cities;
+            p2 = ArrayAt(parent2, p2_i);
         }
         u32 *c = ArrayAt(child, crossover_length + i);
         *c = *p2;
-        p2++;
+        p2_i = (p2_i + 1)%n_cities;
     }
 
     assert(TourIsValid(child, NULL));
