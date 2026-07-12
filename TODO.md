@@ -6,8 +6,8 @@
     * [x] Easy topology setup using something like a JSON file
     * [x] Migration buffer and better migration policy
     * [ ] Heterogeneous islands (different population sizes)
-    * [ ] Fix bug where sometimes MPI_Recv receives invalid tours even though they were valid when sent
-    * [ ] All topologies and tests on them with statistics
+    * [x] Fix bug where sometimes MPI_Recv receives invalid tours even though they were valid when sent
+    * [x] All topologies and tests on them with statistics
     * [ ] Final run on large art instances with seeds probably
     * [x] Entropy logging from code (no need for profiles for this)
     * [x] Write out tour after each epoch to not lose data when process is killed for some reason
