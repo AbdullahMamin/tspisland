@@ -1,0 +1,454 @@
+[global]
+epoch_length = 500
+n_epochs = 100
+population_size = 500
+migration_rate = 0.2
+log_summary = true
+
+# 0
+[[island]]
+dst_islands = [1]
+src_islands = [63]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 1
+[[island]]
+dst_islands = [2]
+src_islands = [0]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 2
+[[island]]
+dst_islands = [3]
+src_islands = [1]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 3
+[[island]]
+dst_islands = [4]
+src_islands = [2]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 4
+[[island]]
+dst_islands = [5]
+src_islands = [3]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 5
+[[island]]
+dst_islands = [6]
+src_islands = [4]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 6
+[[island]]
+dst_islands = [7]
+src_islands = [5]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 7
+[[island]]
+dst_islands = [8]
+src_islands = [6]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 8
+[[island]]
+dst_islands = [9]
+src_islands = [7]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 9
+[[island]]
+dst_islands = [10]
+src_islands = [8]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 10
+[[island]]
+dst_islands = [11]
+src_islands = [9]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 11
+[[island]]
+dst_islands = [12]
+src_islands = [10]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 12
+[[island]]
+dst_islands = [13]
+src_islands = [11]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 13
+[[island]]
+dst_islands = [14]
+src_islands = [12]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 14
+[[island]]
+dst_islands = [15]
+src_islands = [13]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 15
+[[island]]
+dst_islands = [16]
+src_islands = [14]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 16
+[[island]]
+dst_islands = [17]
+src_islands = [15]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 17
+[[island]]
+dst_islands = [18]
+src_islands = [16]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 18
+[[island]]
+dst_islands = [19]
+src_islands = [17]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 19
+[[island]]
+dst_islands = [20]
+src_islands = [18]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 20
+[[island]]
+dst_islands = [21]
+src_islands = [19]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 21
+[[island]]
+dst_islands = [22]
+src_islands = [20]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 22
+[[island]]
+dst_islands = [23]
+src_islands = [21]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 23
+[[island]]
+dst_islands = [24]
+src_islands = [22]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 24
+[[island]]
+dst_islands = [25]
+src_islands = [23]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 25
+[[island]]
+dst_islands = [26]
+src_islands = [24]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 26
+[[island]]
+dst_islands = [27]
+src_islands = [25]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 27
+[[island]]
+dst_islands = [28]
+src_islands = [26]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 28
+[[island]]
+dst_islands = [29]
+src_islands = [27]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 29
+[[island]]
+dst_islands = [30]
+src_islands = [28]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 30
+[[island]]
+dst_islands = [31]
+src_islands = [29]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 31
+[[island]]
+dst_islands = [32]
+src_islands = [30]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 32
+[[island]]
+dst_islands = [33]
+src_islands = [31]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 33
+[[island]]
+dst_islands = [34]
+src_islands = [32]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 34
+[[island]]
+dst_islands = [35]
+src_islands = [33]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 35
+[[island]]
+dst_islands = [36]
+src_islands = [34]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 36
+[[island]]
+dst_islands = [37]
+src_islands = [35]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 37
+[[island]]
+dst_islands = [38]
+src_islands = [36]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 38
+[[island]]
+dst_islands = [39]
+src_islands = [37]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 39
+[[island]]
+dst_islands = [40]
+src_islands = [38]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 40
+[[island]]
+dst_islands = [41]
+src_islands = [39]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 41
+[[island]]
+dst_islands = [42]
+src_islands = [40]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 42
+[[island]]
+dst_islands = [43]
+src_islands = [41]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 43
+[[island]]
+dst_islands = [44]
+src_islands = [42]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 44
+[[island]]
+dst_islands = [45]
+src_islands = [43]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 45
+[[island]]
+dst_islands = [46]
+src_islands = [44]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 46
+[[island]]
+dst_islands = [47]
+src_islands = [45]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 47
+[[island]]
+dst_islands = [48]
+src_islands = [46]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 48
+[[island]]
+dst_islands = [49]
+src_islands = [47]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 49
+[[island]]
+dst_islands = [50]
+src_islands = [48]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 50
+[[island]]
+dst_islands = [51]
+src_islands = [49]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 51
+[[island]]
+dst_islands = [52]
+src_islands = [50]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 52
+[[island]]
+dst_islands = [53]
+src_islands = [51]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 53
+[[island]]
+dst_islands = [54]
+src_islands = [52]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 54
+[[island]]
+dst_islands = [55]
+src_islands = [53]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 55
+[[island]]
+dst_islands = [56]
+src_islands = [54]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 56
+[[island]]
+dst_islands = [57]
+src_islands = [55]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 57
+[[island]]
+dst_islands = [58]
+src_islands = [56]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 58
+[[island]]
+dst_islands = [59]
+src_islands = [57]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 59
+[[island]]
+dst_islands = [60]
+src_islands = [58]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 60
+[[island]]
+dst_islands = [61]
+src_islands = [59]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 61
+[[island]]
+dst_islands = [62]
+src_islands = [60]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 62
+[[island]]
+dst_islands = [63]
+src_islands = [61]
+mutation_rate = 0.05
+max_mutation_strength = 0.1
+
+# 63
+[[island]]
+dst_islands = [0]
+src_islands = [62]
+mutation_rate = 0.05
+max_mutation_strength = 0.1

@@ -1,0 +1,36 @@
+[global]
+epoch_length = 500
+n_epochs = 10
+population_size = 500
+migration_rate = 0.1
+log_summary = true
+log_entropy = true
+log_profile = true
+
+# 0
+[[island]]
+dst_islands = [1]
+src_islands = [3]
+mutation_rate = 0.01
+max_mutation_strength = 0.1
+
+# 1
+[[island]]
+dst_islands = [2]
+src_islands = [0]
+mutation_rate = 0.01
+max_mutation_strength = 0.1
+
+# 2
+[[island]]
+dst_islands = [3]
+src_islands = [1]
+mutation_rate = 0.01
+max_mutation_strength = 0.1
+
+# 3
+[[island]]
+dst_islands = [0]
+src_islands = [2]
+mutation_rate = 0.01
+max_mutation_strength = 0.1
