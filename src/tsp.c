@@ -273,7 +273,12 @@ bool TourIsValid(Tour *tour, Table *table) {
 
     bool is_valid = true;
     for (u32 i = 0; i < n_cities; i++) {
-        if (TableInsert(table, *ArrayAt(tour, i))) {
+        u32 city = *ArrayAt(tour, i);
+        if (city >= n_cities) {
+            is_valid = false;
+            break;
+        }
+        if (TableInsert(table, city)) {
             is_valid = false;
             break;
         }
