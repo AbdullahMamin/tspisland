@@ -128,7 +128,6 @@ u32 *ArrayAt(Array *array, u32 idx) {
     return &array->data[idx];
 }
 
-// TODO
 void ArrayReverse(Array *array, size i, size j) {
     assert(
         ArrayOkay(array) &&
