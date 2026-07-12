@@ -99,8 +99,6 @@ i32 main(i32 argc, char *argv[]) {
         WorkerPrintf(ANY_RANK, "Last evolution for %u generations\n", epoch_length);
         GAIslandEvolve(&island, epoch_length);
 
-        MPI_Barrier(MPI_COMM_WORLD);
-
         Tour best_tour = GAIslandBestIndividual(&island);
         TourWriteToFile(&best_tour, "TSP tour", "Found by GA island", StrConcatenate(4, argv[3], "/", island_name, ".tour"));
 
