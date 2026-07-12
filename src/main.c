@@ -76,6 +76,7 @@ i32 main(i32 argc, char *argv[]) {
 
             // TODO: migration policy
             // TODO: some wasted steps here when n_src = 0 or n_dst = 0, but it's not a big deal.
+            WorkerWaitForAllRequests(); // This fixes the annoying bug...
             TourArray outgoing_migrants = TourArraySlice(&migrants, problem.n_cities, 0, n_migrants);
             GAIslandFillMigrants(&island, &outgoing_migrants);
             for (i32 i = 0; i < n_dst; i++) {
@@ -104,6 +105,7 @@ i32 main(i32 argc, char *argv[]) {
         TourWriteToFile(&best_tour, "TSP tour", "Found by GA island", StrConcatenate(4, argv[3], "/", island_name, ".tour"));
 
         WorkerPrintf(ANY_RANK, "Finished!\n");
+        WorkerWaitForAllRequests(); // This fixes the annoying bug...
         TourArrayFree(&migrants);
         GAIslandFree(&island);
         if (edge_profile_file) {
