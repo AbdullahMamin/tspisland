@@ -68,6 +68,9 @@ void TourPrint(Tour *tour);
 
 typedef Array TourArray;
 
+// TODO: This is a hacky solution to a bug we have...
+u32 TourArrayFix(TourArray *tour_array, u32 n_cities, Table *table);
+
 // Allocate tour array memory
 TourArray TourArrayInit(u32 n_cities, size n_tours);
 

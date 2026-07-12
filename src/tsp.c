@@ -1,3 +1,4 @@
+
 #include "tsp.h"
 
 TSPInstance TSPInstanceInit(const char *tsp_path) {
@@ -316,6 +317,36 @@ void TourPrint(Tour *tour) {
     for (u32 i = 0; i < tour->capacity; i++) {
         printf("%u\n", *ArrayAt(tour, i));
     }
+}
+
+u32 TourArrayFix(TourArray *tour_array, u32 n_cities, Table *table) {
+    assert(!table || (TableOkay(table) && table->capacity >= 2*n_cities));
+
+    bool free_table = false;
+    Table table_struct;
+    if (!table) {
+        table_struct = TableInit(n_cities);
+        table = &table_struct;
+        free_table = true;
+    } else {
+        TableClear(table);
+    }
+
+    u32 n_fix = 0;
+    size n_tours = tour_array->capacity/n_cities;
+    for (size i = 0; i < n_tours; i++) {
+        Tour tour = TourArrayAt(tour_array, n_cities, i);
+        if (TourIsValid(&tour, table)) {
+            continue;
+        }
+        n_fix++;
+        TourRandomize(&tour);
+    }
+
+    if (free_table) {
+        TableFree(table);
+    }
+    return n_fix;
 }
 
 TourArray TourArrayInit(u32 n_cities, size n_tours) {
