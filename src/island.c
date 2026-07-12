@@ -181,15 +181,20 @@ void GAIslandFillMigrants(GAIsland *island, TourArray *migrants) {
 
 void MigrateTo(TourArray *migrants, u32 n_cities, i32 dst_rank) {
     assert(TourArrayIsValid(migrants, n_cities));
-    WorkerISendArray(migrants, dst_rank);
     u32 n_migrants = migrants->capacity/n_cities;
+    WorkerPrintf(ANY_RANK, "Sending %u individuals to %d...\n", n_migrants, dst_rank);
+    WorkerISendArray(migrants, dst_rank);
     WorkerPrintf(ANY_RANK, "Sent %u individuals to %d\n", n_migrants, dst_rank);
 }
 
-void MigrateFrom(TourArray *migrants, u32 n_cities, i32 src_rank) {
+void MigrateFrom(TourArray *migrants, Table *table, u32 n_cities, i32 src_rank) {
     assert(TourArrayOkay(migrants));
-    WorkerReceiveArray(migrants, src_rank);
-    assert(TourArrayIsValid(migrants, n_cities));
     u32 n_migrants = migrants->capacity/n_cities;
+    WorkerPrintf(ANY_RANK, "Receiving %u individuals from %d...\n", n_migrants, src_rank);
+    WorkerReceiveArray(migrants, src_rank);
     WorkerPrintf(ANY_RANK, "Received %u individuals from %d\n", n_migrants, src_rank);
+    u32 n_fix = TourArrayFix(migrants, n_cities, table);
+    if (n_fix > 0) {
+        WorkerPrintf(ANY_RANK, "Had to fix %u individuals from %d\n", n_fix, src_rank);
+    }
 }

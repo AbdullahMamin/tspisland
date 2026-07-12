@@ -63,6 +63,11 @@ i32 main(i32 argc, char *argv[]) {
             WorkerPanicf(ANY_RANK, "Couldn't initialize migration buffer!\n");
         }
 
+        Table aux_table = TableInit(problem.n_cities);
+        if (!TableOkay(&aux_table)) {
+            WorkerPanicf(ANY_RANK, "Couldn't initialize auxiliary table!\n");
+        }
+
         for (u32 epoch = 0; epoch < n_epochs - 1; epoch++) {
             WorkerPrintf(ANY_RANK, "Evolving for %u generations at epoch %u\n", epoch_length, epoch);
             GAIslandEvolve(&island, epoch_length);
@@ -71,9 +76,11 @@ i32 main(i32 argc, char *argv[]) {
             // Write best tours after each epoch so we don't lose data during crashes
             char epoch_name[256];
             sprintf(epoch_name, "epoch_%u", epoch);
+            WorkerPrintf(ANY_RANK, "Logging best inidividual...\n");
             Tour best_tour = GAIslandBestIndividual(&island);
             TourWriteToFile(&best_tour, "TSP tour", "Found by GA island", StrConcatenate(6, argv[3], "/", island_name, "_", epoch_name, ".tour"));
 
+            WorkerPrintf(ANY_RANK, "Beginning migrations...\n");
             // TODO: migration policy
             // TODO: some wasted steps here when n_src = 0 or n_dst = 0, but it's not a big deal.
             WorkerWaitForAllRequests(); // This fixes the annoying bug...
@@ -84,7 +91,7 @@ i32 main(i32 argc, char *argv[]) {
             }
             for (i32 i = 0; i < n_src; i++) {
                 TourArray incoming_migrants = TourArraySlice(&migrants, problem.n_cities, i + 1, n_migrants);
-                MigrateFrom(&incoming_migrants, problem.n_cities, src_islands[i]);
+                MigrateFrom(&incoming_migrants, &aux_table, problem.n_cities, src_islands[i]);
             }
             if (n_src > 0) {
                 for (u32 i = 0; i < n_migrants; i++) {
@@ -104,6 +111,7 @@ i32 main(i32 argc, char *argv[]) {
 
         WorkerPrintf(ANY_RANK, "Finished!\n");
         WorkerWaitForAllRequests(); // This fixes the annoying bug...
+        TableFree(&aux_table);
         TourArrayFree(&migrants);
         GAIslandFree(&island);
         if (edge_profile_file) {
