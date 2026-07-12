@@ -9,8 +9,6 @@
 
 #define RANDOM_SEED (time(NULL))
 
-// TODO: Uniformly distributed random function
-
 void SeedRNG(u32 seed);
 
 i32 RandomInt(i32 min, i32 max);
