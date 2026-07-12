@@ -20,7 +20,8 @@ done
 
 for f in $data_dir/*.summary.csv; do
     echo Turning $f into a graph
-    python3 $summary_script $f ${f%.csv}.svg
+    # $4 is the bound if provided
+    python3 $summary_script $f ${f%.csv}.svg $4
 done
 
 echo === Done! ===
