@@ -56,6 +56,9 @@ You should have received a copy of the GNU General Public License along with thi
 ## ATTRIBUTIONS & ACKNOWLEDGMENTS
 
 [TSPLIB data](https://github.com/mastqe/tsplib)
+
 [TSPArt data](https://www.math.uwaterloo.ca/tsp/data/art/)
+
 [TOML parser](https://github.com/cktan/tomlc17)
+
 [32-bit hash](https://github.com/skeeto/hash-prospector/issues/19)
